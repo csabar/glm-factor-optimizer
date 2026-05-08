@@ -4,7 +4,7 @@ Simple GLM tools for factor binning, grouping, model screening, and workflow
 automation. The package is domain-free: it works for count-rate, positive
 continuous, and other small GLM modeling problems.
 
-Professional documentation is available in [docs/index.md](docs/index.md).
+Full project documentation is included in the source distribution under `docs/`.
 The docs are organized as tutorials, how-to guides, reference, and explanation.
 
 Use `RateGLM` for count-rate models:
@@ -176,7 +176,7 @@ from glm_factor_optimizer.sampling import stratified_sample
 
 Example synthetic datasets live under `examples/` and are not part of the
 installable package API. The examples cover general event-rate, severity, and
-Spark-style workflows; claims modeling is just one possible application.
+Spark-style workflows across operational and service settings.
 
 Use the optional Spark backend in PySpark environments:
 
@@ -220,3 +220,8 @@ pip install "glm-factor-optimizer[spark]"
 ```
 
 All binning and grouping specs are plain JSON-serializable dictionaries.
+
+## Contributing
+
+Development setup, test commands, coverage, and release notes are documented in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).

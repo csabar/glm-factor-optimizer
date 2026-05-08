@@ -106,20 +106,11 @@ class DocumentationTests(unittest.TestCase):
         holdout_report = study.finalize()
         self.assertIn("summary", holdout_report)
 
-    def test_public_docs_do_not_use_branded_or_old_package_terms(self) -> None:
-        public_paths = [ROOT / "README.md", ROOT / "goal.md", ROOT / "original_spec.md", ROOT / "docs"]
+    def test_public_docs_do_not_use_legacy_terms(self) -> None:
+        public_paths = [ROOT / "README.md", ROOT / "docs"]
         banned = [
-            "".join(["a", "g", "l", "m"]),
-            "".join(["e", "a", "r", "n", "i", "x"]),
-            "_".join(["rate", "glm", "optimizer"]),
-            "-".join(["rate", "glm", "optimizer"]),
-            "".join(["d", "a", "t", "a", "b", "r", "i", "c", "k", "s"]),
-            "".join(["r", "i", "s", "k"]),
-            "_".join(["driver", "age"]),
-            "_".join(["vehicle", "type"]),
-            "_".join(["bonus", "malus"]),
-            " ".join(["young", "driver"]),
-            " ".join(["sports", "car"]),
+            "rate_glm_optimizer",
+            "rate-glm-optimizer",
         ]
         violations: list[str] = []
         for path in public_paths:

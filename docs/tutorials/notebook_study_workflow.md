@@ -5,7 +5,7 @@ interactive, auditable, and validation-driven.
 
 The example models incident counts per site operating hour. The same pattern
 can also be used for defects per machine hour, orders per visit, support tickets
-per active account, claims per exposure, or positive continuous outcomes with a
+per active account, service requests per active account, or positive continuous outcomes with a
 Gamma GLM.
 
 ## 1. Create Example Data

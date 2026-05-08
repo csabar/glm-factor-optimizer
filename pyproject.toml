@@ -9,8 +9,16 @@ description = "Domain-free GLM factor binning, grouping, and model design tools.
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+license-files = ["LICENSE"]
 authors = [
   { name = "GLM Factor Optimizer contributors" }
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
   "numpy>=1.23",
@@ -22,7 +30,27 @@ dependencies = [
 [project.optional-dependencies]
 mlflow = ["mlflow>=2.0"]
 spark = ["pyspark>=3.5"]
-dev = ["pytest>=8.0", "hatchling>=1.21"]
+dev = [
+  "build>=1.2",
+  "coverage[toml]>=7.6",
+  "hatchling>=1.21",
+  "pytest>=8.0",
+  "twine>=5.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["glm_factor_optimizer"]
+
+[tool.coverage.run]
+branch = true
+source = ["glm_factor_optimizer"]
+omit = ["glm_factor_optimizer/spark/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]
