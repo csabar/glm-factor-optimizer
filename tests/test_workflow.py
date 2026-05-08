@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import GLMWorkflow
+from glm_factor_optimizer import GLMWorkflow
 
 try:
     import optuna

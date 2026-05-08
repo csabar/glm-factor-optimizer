@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from rate_glm_optimizer import RateGLM, split
+from glm_factor_optimizer import RateGLM, split
 
 
 def make_data(rows: int = 2_000, seed: int = 5) -> pd.DataFrame:

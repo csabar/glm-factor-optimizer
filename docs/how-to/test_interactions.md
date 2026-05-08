@@ -9,8 +9,8 @@ patterns may not be captured by the main-effects model.
 study.fit_main_effects()
 ```
 
-Interactions use accepted transformed factors, such as `driver_age_bin` or
-`vehicle_type_group`.
+Interactions use accepted transformed factors, such as `machine_age_bin` or
+`equipment_type_group`.
 
 ## Find Candidates
 
@@ -37,14 +37,14 @@ The diagnostic requires a pattern to appear in both train and validation.
 You can use raw factor names if they have accepted specs:
 
 ```python
-result = study.test_interaction("driver_age", "vehicle_type")
+result = study.test_interaction("machine_age", "equipment_type")
 result
 ```
 
 Or pass transformed factor names directly:
 
 ```python
-result = study.test_interaction("driver_age_bin", "vehicle_type_group")
+result = study.test_interaction("machine_age_bin", "equipment_type_group")
 ```
 
 The interaction is built as a coarse categorical cross of the accepted
@@ -54,9 +54,9 @@ transformed factor columns.
 
 ```python
 study.accept_interaction(
-    "driver_age",
-    "vehicle_type",
-    comment="Known driver_age x vehicle_type effect",
+    "machine_age",
+    "equipment_type",
+    comment="Known machine_age x equipment_type effect",
 )
 
 study.fit_main_effects()

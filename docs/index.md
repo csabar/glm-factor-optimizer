@@ -1,4 +1,4 @@
-# rate-glm-optimizer Documentation
+# glm-factor-optimizer Documentation
 
 This documentation uses a Diataxis-style structure:
 
@@ -23,7 +23,7 @@ The recommended professional workflow for this package is notebook-first:
 
 Tutorial:
 
-- [Notebook AGLM Study Workflow](tutorials/notebook_study_workflow.md)
+- [Notebook GLM Factor Study Workflow](tutorials/notebook_study_workflow.md)
 
 How-to guides:
 
@@ -49,7 +49,7 @@ Explanation:
 Use `GLMStudy` for iterative notebook modeling:
 
 ```python
-from rate_glm_optimizer import GLMStudy
+from glm_factor_optimizer import GLMStudy
 
 study = GLMStudy(
     df,
@@ -62,7 +62,7 @@ study = GLMStudy(
 Use `RateGLM` or `GLM` for low-level manual work:
 
 ```python
-from rate_glm_optimizer import RateGLM
+from glm_factor_optimizer import RateGLM
 
 glm = RateGLM(target="events", exposure="hours")
 ```
@@ -70,8 +70,7 @@ glm = RateGLM(target="events", exposure="hours")
 Use `GLMWorkflow` when a simple automatic sequential workflow is enough:
 
 ```python
-from rate_glm_optimizer import GLMWorkflow
+from glm_factor_optimizer import GLMWorkflow
 ```
 
-Use `rate_glm_optimizer.spark` for Spark/Databricks-oriented primitives.
-
+Use `glm_factor_optimizer.spark` for Spark-oriented primitives.

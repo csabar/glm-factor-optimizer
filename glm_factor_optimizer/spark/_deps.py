@@ -29,7 +29,7 @@ def require_pyspark() -> SparkDeps:
     except ModuleNotFoundError as exc:
         raise ImportError(
             "The Spark backend requires PySpark. Install with "
-            "`pip install rate-glm-optimizer[spark]` or run inside Databricks."
+            "`pip install glm-factor-optimizer[spark]` or run inside an environment that already provides PySpark."
         ) from exc
 
     return SparkDeps(

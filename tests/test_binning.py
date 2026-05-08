@@ -7,8 +7,8 @@ import unittest
 
 import pandas as pd
 
-from rate_glm_optimizer import apply_spec, make_numeric_bins
-from rate_glm_optimizer.bins import make_categorical_groups
+from glm_factor_optimizer import apply_spec, make_numeric_bins
+from glm_factor_optimizer.bins import make_categorical_groups
 
 
 class BinningTests(unittest.TestCase):

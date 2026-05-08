@@ -33,7 +33,7 @@ Useful columns:
 ## With the Low-Level API
 
 ```python
-from rate_glm_optimizer import rank_factors
+from glm_factor_optimizer import rank_factors
 
 ranking = rank_factors(
     train,

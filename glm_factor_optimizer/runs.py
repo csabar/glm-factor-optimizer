@@ -31,7 +31,7 @@ class RunLogger:
             try:
                 import mlflow as mlflow_module
             except ModuleNotFoundError as exc:
-                raise ImportError("Install rate-glm-optimizer[mlflow] to enable MLflow logging.") from exc
+                raise ImportError("Install glm-factor-optimizer[mlflow] to enable MLflow logging.") from exc
             self._mlflow = mlflow_module
             self._mlflow.start_run(run_name=name)
 

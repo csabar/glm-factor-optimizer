@@ -1,4 +1,4 @@
-"""Optional PySpark backend for Databricks/Spark environments."""
+"""Optional PySpark backend for Spark environments."""
 
 from .aggregation import aggregate_rate_table, aggregate_table
 from .bins import apply_spec, category_risk_order, make_categorical_groups, make_numeric_bins

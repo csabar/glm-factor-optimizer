@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import GLM, RateGLM, small_count_penalty, split
+from glm_factor_optimizer import GLM, RateGLM, small_count_penalty, split
 
 try:
     import optuna

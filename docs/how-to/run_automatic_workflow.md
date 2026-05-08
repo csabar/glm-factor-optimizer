@@ -7,7 +7,7 @@ production model design.
 ## Automatic Study Design
 
 ```python
-from rate_glm_optimizer import GLMStudy
+from glm_factor_optimizer import GLMStudy
 
 study = GLMStudy(
     df,
@@ -36,7 +36,7 @@ manual notebook would use.
 For a smaller automatic wrapper:
 
 ```python
-from rate_glm_optimizer import GLMWorkflow
+from glm_factor_optimizer import GLMWorkflow
 
 workflow = GLMWorkflow(
     target="events",

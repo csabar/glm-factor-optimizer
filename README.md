@@ -1,4 +1,4 @@
-# rate-glm-optimizer
+# glm-factor-optimizer
 
 Simple GLM tools for factor binning, grouping, model screening, and workflow
 automation. The package is domain-free: it works for count-rate, severity, and
@@ -14,7 +14,7 @@ Use `RateGLM` for count-rate/frequency models:
 - numeric or categorical factors
 
 ```python
-from rate_glm_optimizer import RateGLM, split
+from glm_factor_optimizer import RateGLM, split
 
 train, valid, holdout = split(df)
 
@@ -31,18 +31,18 @@ report = glm.report(valid)
 print(report["summary"])
 ```
 
-Use `GLM` for other families, such as Gamma severity:
+Use `GLM` for other families, such as Gamma cost or duration models:
 
 ```python
-from rate_glm_optimizer import GLM
+from glm_factor_optimizer import GLM
 
 glm = GLM(target="severity", family="gamma", prediction="predicted_severity")
 
-age_spec = glm.bins(train, "driver_age", bins=6)
+age_spec = glm.bins(train, "machine_age", bins=6)
 train = glm.apply(train, age_spec)
 valid = glm.apply(valid, age_spec)
 
-model = glm.fit(train, factors=[age_spec["output"], "vehicle_type"])
+model = glm.fit(train, factors=[age_spec["output"], "equipment_type"])
 valid = glm.predict(valid, model)
 ```
 
@@ -65,7 +65,7 @@ model = glm.fit(train, factors=[result.output, "segment"])
 The same optimizer is also exposed as `optimize_bins`:
 
 ```python
-from rate_glm_optimizer import optimize_bins
+from glm_factor_optimizer import optimize_bins
 
 result = optimize_bins(
     train,
@@ -79,7 +79,7 @@ result = optimize_bins(
 Add custom penalties with lambdas or named functions:
 
 ```python
-from rate_glm_optimizer import small_bin_size_penalty, small_count_penalty
+from glm_factor_optimizer import small_bin_size_penalty, small_count_penalty
 
 result = glm.optimize(
     train,
@@ -113,7 +113,7 @@ Run a higher-level sequential workflow with optional ranking, logging, and
 interaction diagnostics:
 
 ```python
-from rate_glm_optimizer import GLMWorkflow
+from glm_factor_optimizer import GLMWorkflow
 
 workflow = GLMWorkflow(
     target="events",
@@ -135,7 +135,7 @@ print(result.coefficients)
 For notebook-style iterative model design, use `GLMStudy`:
 
 ```python
-from rate_glm_optimizer import GLMStudy
+from glm_factor_optimizer import GLMStudy
 
 study = GLMStudy(
     df,
@@ -168,19 +168,20 @@ study.save("runs")
 Useful helper modules are available for manual workflows:
 
 ```python
-from rate_glm_optimizer.aggregation import aggregate_rate_table
-from rate_glm_optimizer.diagnostics import find_interactions
-from rate_glm_optimizer.runs import RunLogger
-from rate_glm_optimizer.sampling import stratified_sample
+from glm_factor_optimizer.aggregation import aggregate_rate_table
+from glm_factor_optimizer.diagnostics import find_interactions
+from glm_factor_optimizer.runs import RunLogger
+from glm_factor_optimizer.sampling import stratified_sample
 ```
 
 Example synthetic datasets live under `examples/` and are not part of the
-installable package API.
+installable package API. The examples cover general event-rate, severity, and
+Spark-style workflows; claims modeling is just one possible application.
 
-Use the optional Spark backend on Databricks:
+Use the optional Spark backend in PySpark environments:
 
 ```python
-from rate_glm_optimizer.spark import SparkGLM, SparkGLMWorkflow
+from glm_factor_optimizer.spark import SparkGLM, SparkGLMWorkflow
 
 glm = SparkGLM(
     target="events",
@@ -215,7 +216,7 @@ result = glm.optimize(
 Install locally with Spark support using:
 
 ```bash
-pip install "rate-glm-optimizer[spark]"
+pip install "glm-factor-optimizer[spark]"
 ```
 
 All binning and grouping specs are plain JSON-serializable dictionaries.

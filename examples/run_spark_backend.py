@@ -1,12 +1,12 @@
-"""Databricks/Spark backend sketch.
+"""Spark backend sketch.
 
-Run this inside a PySpark environment, for example a Databricks notebook or a
-local environment with `pip install "rate-glm-optimizer[spark]"`.
+Run this inside a PySpark environment, for example a managed notebook or a
+local environment with `pip install "glm-factor-optimizer[spark]"`.
 """
 
 from __future__ import annotations
 
-from rate_glm_optimizer.spark import SparkGLM, split
+from glm_factor_optimizer.spark import SparkGLM, split
 
 
 def main(sdf) -> None:

@@ -1,6 +1,6 @@
 # Architecture
 
-`rate-glm-optimizer` is organized in layers. Each layer is useful on its own,
+`glm-factor-optimizer` is organized in layers. Each layer is useful on its own,
 but the preferred professional workflow is built from the lower layers instead
 of hiding them.
 
@@ -64,7 +64,7 @@ Responsibilities:
 - test interactions explicitly
 - finalize and save model artifacts
 
-`GLMStudy` is the recommended interface for AGLM-like model design because it
+`GLMStudy` is the recommended interface for iterative GLM factor design because it
 keeps the process interactive and reviewable.
 
 ## Layer 4: Automatic Workflow
@@ -81,12 +81,12 @@ professional model design.
 
 Spark modules live under:
 
-- `rate_glm_optimizer.spark`
+- `glm_factor_optimizer.spark`
 
 The Spark backend is separate so pandas users do not need PySpark installed.
 Spark imports are lazy. The long-term design is to keep the same conceptual
 objects and specs while allowing Spark dataframes and Spark GLM jobs in
-Databricks-like environments.
+Spark-compatible environments.
 
 ## Data Flow
 
@@ -119,4 +119,3 @@ Specs are simple dictionaries because they need to be:
 - suitable for audit review
 
 This is more durable than storing opaque transformer objects.
-

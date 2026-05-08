@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import RateGLM, rank_factors, split
+from glm_factor_optimizer import RateGLM, rank_factors, split
 
 
 def make_data(n_rows: int = 450, seed: int = 51) -> pd.DataFrame:

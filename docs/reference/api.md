@@ -8,7 +8,7 @@ not listed.
 Import:
 
 ```python
-from rate_glm_optimizer import GLMStudy
+from glm_factor_optimizer import GLMStudy
 ```
 
 Constructor:
@@ -69,13 +69,13 @@ Important attributes:
 Import:
 
 ```python
-from rate_glm_optimizer import FactorBlock
+from glm_factor_optimizer import FactorBlock
 ```
 
 Usually created by:
 
 ```python
-block = study.factor("driver_age")
+block = study.factor("machine_age")
 ```
 
 Methods:
@@ -95,7 +95,7 @@ Methods:
 ## Low-Level Modeling
 
 ```python
-from rate_glm_optimizer import GLM, RateGLM
+from glm_factor_optimizer import GLM, RateGLM
 ```
 
 `GLM` supports:
@@ -119,7 +119,7 @@ Core methods:
 ## Optimization
 
 ```python
-from rate_glm_optimizer import optimize_bins, optimize_factor
+from glm_factor_optimizer import optimize_bins, optimize_factor
 ```
 
 `optimize_bins` is an alias for `optimize_factor`.
@@ -146,7 +146,7 @@ The objective uses validation deviance plus complexity and bin-size penalties.
 ## Screening
 
 ```python
-from rate_glm_optimizer import rank_factors
+from glm_factor_optimizer import rank_factors
 ```
 
 Returns a dataframe with validation deviance improvement, missing rates,
@@ -155,7 +155,7 @@ coverage, screening p-value, bin counts, and the simple screening spec.
 ## Validation
 
 ```python
-from rate_glm_optimizer import (
+from glm_factor_optimizer import (
     validation_report,
     by_factor_report,
     train_validation_comparison,
@@ -169,12 +169,12 @@ Use these for custom reports outside `GLMStudy`.
 ## Spark Backend
 
 ```python
-from rate_glm_optimizer.spark import SparkGLM, SparkGLMWorkflow
+from glm_factor_optimizer.spark import SparkGLM, SparkGLMWorkflow
 ```
 
 The Spark backend is optional and imports PySpark lazily. Install with:
 
 ```bash
-pip install "rate-glm-optimizer[spark]"
+pip install "glm-factor-optimizer[spark]"
 ```
 

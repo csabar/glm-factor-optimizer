@@ -10,8 +10,8 @@ Example:
 ```json
 {
   "type": "numeric",
-  "column": "driver_age",
-  "output": "driver_age_bin",
+  "column": "machine_age",
+  "output": "machine_age_bin",
   "method": "quantile",
   "edges": [17.999999999, 25.0, 35.0, 50.0, 85.000000001],
   "labels": ["bin_1", "bin_2", "bin_3", "bin_4"]
@@ -43,15 +43,15 @@ Example:
 ```json
 {
   "type": "categorical",
-  "column": "vehicle_type",
-  "output": "vehicle_type_group",
-  "order": ["sedan", "wagon", "suv", "sports"],
+  "column": "equipment_type",
+  "output": "equipment_type_group",
+  "order": ["compact", "standard", "heavy", "specialized"],
   "cutpoints": [2, 3],
   "mapping": {
-    "sedan": "group_01",
-    "wagon": "group_01",
-    "suv": "group_02",
-    "sports": "group_03"
+    "compact": "group_01",
+    "standard": "group_01",
+    "heavy": "group_02",
+    "specialized": "group_03"
   },
   "labels": ["group_01", "group_02", "group_03"],
   "default": "other",
@@ -88,8 +88,8 @@ Interaction specs are created by `GLMStudy.test_interaction(...)`:
 ```json
 {
   "type": "interaction",
-  "columns": ["driver_age_bin", "vehicle_type_group"],
-  "output": "driver_age_bin__x__vehicle_type_group",
+  "columns": ["machine_age_bin", "equipment_type_group"],
+  "output": "machine_age_bin__x__equipment_type_group",
   "method": "string_cross"
 }
 ```
@@ -115,4 +115,3 @@ Specs should remain:
 - learned from training data only
 - directly applicable to validation, holdout, or scoring data
 - suitable for logging and audit review
-

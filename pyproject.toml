@@ -3,14 +3,14 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rate-glm-optimizer"
+name = "glm-factor-optimizer"
 version = "0.1.0"
-description = "Simple GLM modeling and Optuna factor binning tools."
+description = "Domain-free GLM factor binning, grouping, and model design tools."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-  { name = "AGLM contributors" }
+  { name = "GLM Factor Optimizer contributors" }
 ]
 dependencies = [
   "numpy>=1.23",
@@ -25,4 +25,4 @@ spark = ["pyspark>=3.5"]
 dev = ["pytest>=8.0", "hatchling>=1.21"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["rate_glm_optimizer"]
+packages = ["glm_factor_optimizer"]

@@ -6,7 +6,7 @@ import unittest
 
 import pandas as pd
 
-from rate_glm_optimizer import split
+from glm_factor_optimizer import split
 
 
 class SplitTests(unittest.TestCase):

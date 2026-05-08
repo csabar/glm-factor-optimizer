@@ -1,27 +1,72 @@
-# Tutorial: Notebook AGLM Study Workflow
+# Tutorial: Notebook GLM Factor Study Workflow
 
 This tutorial shows the preferred workflow for professional model design:
 interactive, auditable, and validation-driven.
 
-The example uses count data with exposure, but the same pattern works for other
-supported GLM families such as Gamma severity.
+The example models incident counts per site operating hour. The same pattern
+can also be used for defects per machine hour, orders per visit, support tickets
+per active account, claims per exposure, or positive continuous outcomes with a
+Gamma GLM.
 
-## 1. Create the Study
+## 1. Create Example Data
+
+The tutorial is self-contained so it can be copied into a notebook.
 
 ```python
-from rate_glm_optimizer import GLMStudy
+import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(42)
+rows = 800
+hours = rng.uniform(0.5, 2.5, size=rows)
+machine_age = rng.normal(6.0, 2.5, size=rows).clip(0.2, 15.0)
+usage_score = rng.normal(size=rows)
+site_region = rng.choice(["north", "south", "east", "west"], size=rows)
+equipment_type = rng.choice(["standard", "compact", "heavy"], size=rows)
+
+region_effect = pd.Series(site_region).map(
+    {"north": -0.10, "south": 0.15, "east": 0.0, "west": 0.08}
+).to_numpy()
+equipment_effect = pd.Series(equipment_type).map(
+    {"standard": 0.0, "compact": -0.15, "heavy": 0.25}
+).to_numpy()
+mean_rate = np.exp(
+    -1.0
+    + 0.25 * (machine_age > 8.0)
+    + 0.35 * (usage_score > 0.7)
+    + region_effect
+    + equipment_effect
+)
+events = rng.poisson(mean_rate * hours)
+
+df = pd.DataFrame(
+    {
+        "events": events,
+        "hours": hours,
+        "machine_age": machine_age,
+        "usage_score": usage_score,
+        "site_region": site_region,
+        "equipment_type": equipment_type,
+    }
+)
+```
+
+## 2. Create the Study
+
+```python
+from glm_factor_optimizer import GLMStudy
 
 study = GLMStudy(
     df,
-    target="claim_count",
-    exposure="exposure",
+    target="events",
+    exposure="hours",
     family="poisson",
     prediction="predicted_count",
     factor_kinds={
-        "region": "categorical",
-        "vehicle_type": "categorical",
+        "site_region": "categorical",
+        "equipment_type": "categorical",
     },
-    min_bin_size=500.0,
+    min_bin_size=20.0,
     seed=42,
 )
 ```
@@ -37,7 +82,7 @@ study = GLMStudy(
 - validation reports
 - audit history
 
-## 2. Split Once
+## 3. Split Once
 
 ```python
 train, validation, holdout = study.split(
@@ -52,18 +97,17 @@ The package uses the validation sample for model design decisions. Holdout is
 reserved for final evaluation and is not scored during ordinary ranking or
 factor optimization.
 
-## 3. Rank Candidate Factors
+## 4. Rank Candidate Factors
 
 ```python
 candidate_factors = [
-    "driver_age",
-    "vehicle_age",
-    "region",
-    "vehicle_type",
-    "bonus_malus",
+    "machine_age",
+    "usage_score",
+    "site_region",
+    "equipment_type",
 ]
 
-ranking = study.rank_candidates(candidate_factors, bins=6, max_groups=6)
+ranking = study.rank_candidates(candidate_factors, bins=5, max_groups=4)
 ranking[
     [
         "factor",
@@ -79,34 +123,34 @@ ranking[
 ```
 
 Ranking is only screening. It is not final variable selection. A good factor
-should still pass human review for stability, interpretability, and business
+should still pass human review for stability, interpretability, and operational
 reasonableness.
 
-## 4. Build One Factor Block
+## 5. Build One Factor Block
 
 ```python
-age = study.factor("driver_age", kind="numeric")
+age = study.factor("machine_age", kind="numeric")
 
-age.coarse_bins(bins=10)
+age.coarse_bins(bins=5)
 age.bin_table()
 ```
 
 For a categorical factor:
 
 ```python
-region = study.factor("region", kind="categorical")
-region.risk_order(max_groups=6)
+region = study.factor("site_region", kind="categorical")
+region.risk_order(max_groups=4)
 region.bin_table()
 ```
 
-## 5. Optimize and Compare
+## 6. Optimize and Compare
 
 ```python
 age_result = age.optimize(
-    trials=100,
-    max_bins=6,
-    n_prebins=12,
-    min_bin_size=500.0,
+    trials=5,  # use 100+ for a real model review
+    max_bins=5,
+    n_prebins=8,
+    min_bin_size=20.0,
 )
 
 age.compare()
@@ -119,10 +163,10 @@ age.validation_table()
 - the proposed factor spec added or replacing the old spec
 - validation deviance as the primary comparison score
 
-## 6. Accept or Reject
+## 7. Accept or Reject
 
 ```python
-age.accept(comment="Stable monotone shape; accepted 5-bin driver_age factor")
+age.accept(comment="Stable machine_age shape; accepted for the first model")
 ```
 
 Rejecting also records an audit event:
@@ -134,7 +178,16 @@ region.reject(comment="Validation improvement too small")
 Accepted specs become part of the current model design. Rejected proposals stay
 in the study history.
 
-## 7. Fit the Current Main-Effects Model
+## 8. Add Another Factor
+
+```python
+equipment = study.factor("equipment_type", kind="categorical")
+equipment.optimize(trials=5, min_bin_size=20.0)  # use more trials in production
+equipment.compare()
+equipment.accept(comment="Equipment grouping is stable")
+```
+
+## 9. Fit the Current Main-Effects Model
 
 ```python
 model = study.fit_main_effects()
@@ -154,35 +207,35 @@ The validation report includes:
 - train-vs-validation comparison
 - model version comparison
 
-## 8. Refine With the Full Model Fixed
+## 10. Refine With the Full Model Fixed
 
 Once a baseline main-effects model exists, refine one accepted factor while all
 other accepted factors remain fixed:
 
 ```python
 refined_age = study.refine_factor(
-    "driver_age",
-    trials=200,
-    max_bins=6,
-    n_prebins=16,
+    "machine_age",
+    trials=5,  # use 100+ for a real model review
+    max_bins=5,
+    n_prebins=8,
 )
 
 refined_age.compare()
-refined_age.accept(comment="Improved validation deviance with stable bins")
+refined_age.accept(comment="Full-model refinement accepted")
 ```
 
 Or propose refinements for all accepted factors:
 
 ```python
-proposals = study.refine_all(trials=50, accept=False)
+proposals = study.refine_all(trials=5, accept=False)
 ```
 
 Automatic acceptance is available, but notebook review is recommended.
 
-## 9. Search for Interactions
+## 11. Search for Interactions
 
 ```python
-interactions = study.find_interactions(min_bin_size=500.0)
+interactions = study.find_interactions(min_bin_size=20.0)
 interactions.head(20)
 ```
 
@@ -191,18 +244,22 @@ Interactions are diagnostic candidates. They are not added automatically.
 Test one interaction:
 
 ```python
-test = study.test_interaction("driver_age", "vehicle_type")
+test = study.test_interaction("machine_age", "equipment_type")
 test
 ```
 
 Accept only if it is stable and explainable:
 
 ```python
-study.accept_interaction("driver_age", "vehicle_type", comment="Known age x vehicle effect")
+study.accept_interaction(
+    "machine_age",
+    "equipment_type",
+    comment="Accepted after reviewing cell stability",
+)
 study.fit_main_effects()
 ```
 
-## 10. Finalize on Holdout
+## 12. Finalize on Holdout
 
 ```python
 holdout_report = study.finalize()
@@ -212,7 +269,7 @@ holdout_report["summary"]
 `finalize()` scores holdout and records a final audit event. Use it once the
 model design is complete.
 
-## 11. Save the Study
+## 13. Save the Study
 
 ```python
 run_path = study.save("runs")

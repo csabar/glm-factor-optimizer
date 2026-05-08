@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import (
+from glm_factor_optimizer import (
     RunLogger,
     aggregate_rate_table,
     find_interactions,

@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import GLMStudy
+from glm_factor_optimizer import GLMStudy
 
 try:
     import optuna

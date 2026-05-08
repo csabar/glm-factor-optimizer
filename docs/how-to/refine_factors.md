@@ -7,17 +7,17 @@ re-optimizing one accepted factor while keeping all other accepted factors fixed
 ## Accept an Initial Factor
 
 ```python
-age = study.factor("driver_age", kind="numeric")
+age = study.factor("machine_age", kind="numeric")
 age.optimize(trials=100, max_bins=6, n_prebins=12)
-age.accept(comment="Initial driver_age factor")
+age.accept(comment="Initial machine_age factor")
 ```
 
 Add more factors:
 
 ```python
-vehicle = study.factor("vehicle_type", kind="categorical")
-vehicle.optimize(trials=100)
-vehicle.accept(comment="Vehicle type grouping")
+equipment = study.factor("equipment_type", kind="categorical")
+equipment.optimize(trials=100)
+equipment.accept(comment="Equipment type grouping")
 
 study.fit_main_effects()
 ```
@@ -26,7 +26,7 @@ study.fit_main_effects()
 
 ```python
 refined_age = study.refine_factor(
-    "driver_age",
+    "machine_age",
     trials=200,
     max_bins=6,
     n_prebins=16,
@@ -44,7 +44,7 @@ while the proposed replacement is evaluated.
 ## Accept or Leave as Proposal
 
 ```python
-refined_age.accept(comment="Accepted full-model driver_age refinement")
+refined_age.accept(comment="Accepted full-model machine_age refinement")
 ```
 
 If the proposal is not better or not stable:
@@ -68,4 +68,3 @@ study.refine_all(trials=50, accept=True)
 
 Use automatic acceptance only for exploratory baselines or controlled batch
 experiments.
-

@@ -21,7 +21,7 @@ ordinary design work.
 
 ## One Factor at a Time
 
-AGLM-like workflows are useful because they keep model decisions inspectable.
+Iterative GLM factor-design workflows are useful because they keep model decisions inspectable.
 Optimizing one factor at a time allows the modeler to ask:
 
 - Does this factor improve validation performance?
@@ -102,6 +102,5 @@ Every accepted modeling decision should be reproducible. `GLMStudy` records:
 - validation reports
 - holdout reports after finalization
 
-This audit trail matters for pricing review, peer review, and future model
+This audit trail matters for model review, peer review, and future model
 maintenance.
-

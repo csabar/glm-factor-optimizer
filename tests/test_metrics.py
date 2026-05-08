@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import poisson_deviance, summary, weighted_mae, weighted_rmse
+from glm_factor_optimizer import poisson_deviance, summary, weighted_mae, weighted_rmse
 
 
 class MetricsTests(unittest.TestCase):
