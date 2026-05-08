@@ -45,6 +45,34 @@ class GLMStudy:
         min_bin_size: float = 100.0,
         seed: int | None = 42,
     ) -> None:
+        """Create an interactive study for GLM factor design.
+
+        Parameters
+        ----------
+        df:
+            Source data containing the outcome, candidate factor columns, and
+            optional exposure or weight columns.
+        target:
+            Name of the observed outcome column.
+        family:
+            GLM family name. Supported values follow :func:`fit_glm`, such as
+            ``"poisson"``, ``"gamma"``, and ``"gaussian"``.
+        exposure:
+            Optional exposure column used as a log offset when fitting the GLM.
+        weight:
+            Optional row-weight column used for model fitting and diagnostics.
+        prediction:
+            Name of the prediction column written to scored data.
+        factor_kinds:
+            Optional mapping from raw factor name to ``"numeric"`` or
+            ``"categorical"``. Unspecified factors are inferred when possible.
+        min_bin_size:
+            Default minimum bin size used by optimization, diagnostics, and
+            interaction screening.
+        seed:
+            Default random seed for splitting and optimization.
+        """
+
         self.df = df.copy()
         self.target = target
         self.family = family
@@ -88,7 +116,14 @@ class GLMStudy:
 
     @property
     def selected_factors(self) -> list[str]:
-        """Return accepted transformed model columns."""
+        """Return accepted transformed model columns.
+
+        Returns
+        -------
+        list[str]
+            Model-ready columns created by accepted factor specs and accepted
+            interaction specs.
+        """
 
         outputs = [str(self.specs[factor]["output"]) for factor in self.accepted_raw_factors]
         outputs.extend(str(spec["output"]) for spec in self.interaction_specs.values())
@@ -103,7 +138,27 @@ class GLMStudy:
         seed: int | None = None,
         time: str | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Create train, validation, and holdout samples."""
+        """Create train, validation, and holdout samples.
+
+        Parameters
+        ----------
+        train_fraction:
+            Fraction of rows assigned to the training sample.
+        validation_fraction:
+            Fraction of rows assigned to the validation sample.
+        holdout_fraction:
+            Fraction of rows assigned to the holdout sample.
+        seed:
+            Optional split seed. When omitted, the study seed is used.
+        time:
+            Optional time-like column for ordered splitting instead of random
+            splitting.
+
+        Returns
+        -------
+        tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]
+            The train, validation, and holdout samples.
+        """
 
         self.train, self.validation, self.holdout = split_frame(
             self.df,
@@ -126,7 +181,28 @@ class GLMStudy:
         min_bin_size: float | None = None,
         factor_kinds: dict[str, str] | None = None,
     ) -> pd.DataFrame:
-        """Rank candidate factors for notebook screening."""
+        """Rank candidate factors for notebook screening.
+
+        Parameters
+        ----------
+        factors:
+            Raw candidate factor columns to screen.
+        bins:
+            Number of simple numeric bins used during screening.
+        max_groups:
+            Maximum number of ordered categorical groups used during screening.
+        min_bin_size:
+            Optional minimum bin size override for screening diagnostics.
+        factor_kinds:
+            Optional per-call mapping from factor name to ``"numeric"`` or
+            ``"categorical"``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Ranked factor table with validation improvement, stability columns,
+            and JSON-serializable specs where available.
+        """
 
         self.require_split()
         kinds = {**self.factor_kinds, **(factor_kinds or {})}
@@ -148,7 +224,23 @@ class GLMStudy:
         return self.ranking
 
     def factor(self, factor: str, kind: str | None = None) -> FactorBlock:
-        """Return an interactive block for one raw factor."""
+        """Return an interactive block for one raw factor.
+
+        Parameters
+        ----------
+        factor:
+            Raw input column to design, bin, or group.
+        kind:
+            Optional explicit factor kind, either ``"numeric"`` or
+            ``"categorical"``. When omitted, the study uses configured kinds or
+            infers from the data.
+
+        Returns
+        -------
+        FactorBlock
+            Notebook-friendly object for manual binning, optimization,
+            comparison, acceptance, and rejection.
+        """
 
         frame = self.train if self.train is not None else self.df
         if factor not in frame.columns:
@@ -168,7 +260,19 @@ class GLMStudy:
         *,
         comment: str | None = None,
     ) -> None:
-        """Accept a factor block or explicit factor/spec into the study."""
+        """Accept a factor block or explicit factor/spec into the study.
+
+        Parameters
+        ----------
+        factor:
+            A :class:`FactorBlock` with a proposed spec, or the raw factor name
+            when ``spec`` is supplied separately.
+        spec:
+            JSON-serializable binning/grouping spec to accept when accepting by
+            factor name.
+        comment:
+            Optional audit note stored in the study history.
+        """
 
         self.require_split()
         factor_name, accepted_spec, optimization = _factor_parts(factor, spec)
@@ -193,7 +297,15 @@ class GLMStudy:
         )
 
     def reject(self, factor: str | FactorBlock, *, comment: str | None = None) -> None:
-        """Record a rejected factor proposal."""
+        """Record a rejected factor proposal.
+
+        Parameters
+        ----------
+        factor:
+            Factor block or raw factor name being rejected.
+        comment:
+            Optional audit note stored in the study history.
+        """
 
         factor_name = factor.factor if isinstance(factor, FactorBlock) else factor
         if factor_name not in self.rejected_factors:
@@ -215,7 +327,36 @@ class GLMStudy:
         penalties: PenaltyInput | None = None,
         seed: int | None = None,
     ) -> OptimizationResult:
-        """Optimize one factor against the current accepted model."""
+        """Optimize one factor against the current accepted model.
+
+        Parameters
+        ----------
+        factor:
+            Raw factor column to optimize.
+        kind:
+            Factor kind, either ``"numeric"`` or ``"categorical"``.
+        trials:
+            Number of Optuna trials.
+        max_bins:
+            Maximum number of bins or groups to allow.
+        n_prebins:
+            Number of numeric pre-bins used to define candidate cutpoints.
+        min_bin_size:
+            Optional minimum bin size override.
+        bin_penalty:
+            Penalty multiplier for additional bins.
+        small_bin_penalty:
+            Penalty multiplier for bins smaller than ``min_bin_size``.
+        penalties:
+            Optional extra penalty callables or named penalty mapping.
+        seed:
+            Optional Optuna sampler seed. When omitted, the study seed is used.
+
+        Returns
+        -------
+        OptimizationResult
+            Best spec, objective value, and trial history.
+        """
 
         self.require_split()
         train, validation, _ = self._transformed_frames(exclude_factor=factor, include_holdout=False)
@@ -247,7 +388,24 @@ class GLMStudy:
         *,
         return_scored: bool = False,
     ) -> pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
-        """Compare a proposed spec with the current accepted model."""
+        """Compare a proposed spec with the current accepted model.
+
+        Parameters
+        ----------
+        factor:
+            Raw factor name represented by the proposed spec.
+        spec:
+            JSON-serializable binning or grouping spec to evaluate.
+        return_scored:
+            When ``True``, also return the validation data scored by the
+            candidate model.
+
+        Returns
+        -------
+        pandas.DataFrame or tuple[pandas.DataFrame, pandas.DataFrame]
+            Candidate comparison table, optionally paired with scored
+            validation data.
+        """
 
         self.require_split()
         baseline = self._current_validation_deviance()
@@ -294,7 +452,26 @@ class GLMStudy:
         comment: str | None = None,
         **kwargs: Any,
     ) -> FactorBlock:
-        """Re-optimize an accepted factor with all other factors fixed."""
+        """Re-optimize an accepted factor with all other factors fixed.
+
+        Parameters
+        ----------
+        factor:
+            Accepted raw factor to refine.
+        trials:
+            Number of Optuna trials for the refinement.
+        accept:
+            Whether to immediately accept the refined spec.
+        comment:
+            Optional audit note stored with the proposed or accepted refinement.
+        **kwargs:
+            Additional arguments forwarded to :meth:`FactorBlock.optimize`.
+
+        Returns
+        -------
+        FactorBlock
+            Factor block containing the refined proposal.
+        """
 
         if factor not in self.specs:
             raise KeyError(f"Factor {factor!r} is not accepted yet.")
@@ -313,7 +490,22 @@ class GLMStudy:
         accept: bool = False,
         **kwargs: Any,
     ) -> list[FactorBlock]:
-        """Re-optimize every accepted main-effect factor."""
+        """Re-optimize every accepted main-effect factor.
+
+        Parameters
+        ----------
+        trials:
+            Number of Optuna trials per factor.
+        accept:
+            Whether each refined spec should be accepted immediately.
+        **kwargs:
+            Additional arguments forwarded to :meth:`refine_factor`.
+
+        Returns
+        -------
+        list[FactorBlock]
+            Refined factor blocks in accepted-factor order.
+        """
 
         blocks = []
         for factor in list(self.accepted_raw_factors):
@@ -321,7 +513,13 @@ class GLMStudy:
         return blocks
 
     def fit_main_effects(self) -> FittedGLM:
-        """Fit the current accepted main-effects and interaction model."""
+        """Fit the current accepted main-effects and interaction model.
+
+        Returns
+        -------
+        FittedGLM
+            Fitted model using all currently selected transformed factors.
+        """
 
         self.require_split()
         train, validation, _ = self._transformed_frames(include_holdout=False)
@@ -335,7 +533,19 @@ class GLMStudy:
         return model
 
     def validation_report(self, bins: int = 10) -> dict[str, pd.DataFrame]:
-        """Return validation tables for the current accepted model."""
+        """Return validation tables for the current accepted model.
+
+        Parameters
+        ----------
+        bins:
+            Number of prediction bands used in calibration and lift tables.
+
+        Returns
+        -------
+        dict[str, pandas.DataFrame]
+            Overall, calibration, lift, by-factor, train-validation, and model
+            version tables.
+        """
 
         if self.current_model is None or self.validation_scored is None or self.train_scored is None:
             self.fit_main_effects()
@@ -365,7 +575,18 @@ class GLMStudy:
         return report
 
     def holdout_report(self, bins: int = 10) -> dict[str, pd.DataFrame]:
-        """Explicitly score holdout and return final-style reports."""
+        """Explicitly score holdout and return final-style reports.
+
+        Parameters
+        ----------
+        bins:
+            Number of prediction bands used in calibration and lift tables.
+
+        Returns
+        -------
+        dict[str, pandas.DataFrame]
+            Holdout summary, calibration, lift, and by-factor tables.
+        """
 
         self.require_split()
         if self.current_model is None:
@@ -387,7 +608,19 @@ class GLMStudy:
         return self.holdout_reports
 
     def find_interactions(self, min_bin_size: float | None = None) -> pd.DataFrame:
-        """Find candidate interactions among accepted transformed factors."""
+        """Find candidate interactions among accepted transformed factors.
+
+        Parameters
+        ----------
+        min_bin_size:
+            Optional minimum combined-bin size required for interaction
+            diagnostics. When omitted, the study default is used.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Ranked pair diagnostics for accepted transformed factors.
+        """
 
         if self.current_model is None or self.train_scored is None or self.validation_scored is None:
             self.fit_main_effects()
@@ -406,7 +639,21 @@ class GLMStudy:
         return self.interaction_diagnostics
 
     def test_interaction(self, factor_a: str, factor_b: str) -> pd.DataFrame:
-        """Evaluate a coarse categorical interaction against the current model."""
+        """Evaluate a coarse categorical interaction against the current model.
+
+        Parameters
+        ----------
+        factor_a:
+            Accepted raw factor name or selected transformed factor column.
+        factor_b:
+            Accepted raw factor name or selected transformed factor column.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One-row comparison of current validation deviance against the
+            candidate interaction model.
+        """
 
         self.require_split()
         baseline = self._current_validation_deviance()
@@ -441,7 +688,19 @@ class GLMStudy:
         *,
         comment: str | None = None,
     ) -> None:
-        """Accept a previously tested interaction, or test and accept a pair."""
+        """Accept a previously tested interaction, or test and accept a pair.
+
+        Parameters
+        ----------
+        factor_a:
+            Interaction output name from a previous test, or the first factor
+            in a pair to test and accept.
+        factor_b:
+            Optional second factor. When supplied, the pair is tested before
+            acceptance.
+        comment:
+            Optional audit note stored in the study history.
+        """
 
         if factor_b is None:
             output = factor_a
@@ -475,7 +734,27 @@ class GLMStudy:
         accept_interactions: bool = False,
         interaction_top_n: int = 3,
     ) -> GLMStudy:
-        """Convenience automatic workflow built from the same explicit steps."""
+        """Run a convenience automatic design workflow.
+
+        Parameters
+        ----------
+        factors:
+            Raw candidate factors to screen and optimize.
+        top_n:
+            Number of ranked factors to optimize and accept.
+        trials:
+            Number of Optuna trials per accepted factor.
+        accept_interactions:
+            Whether to test and accept top interaction candidates automatically.
+        interaction_top_n:
+            Number of interaction candidates to accept when
+            ``accept_interactions`` is ``True``.
+
+        Returns
+        -------
+        GLMStudy
+            The same study instance after automatic design steps.
+        """
 
         ranking = self.rank_candidates(factors)
         for factor in ranking.loc[ranking["error"].isna(), "factor"].head(top_n):
@@ -491,7 +770,19 @@ class GLMStudy:
         return self
 
     def finalize(self, bins: int = 10) -> dict[str, pd.DataFrame]:
-        """Fit current model and score holdout as the final validation step."""
+        """Fit the current model and score holdout as the final validation step.
+
+        Parameters
+        ----------
+        bins:
+            Number of prediction bands used in holdout calibration and lift
+            tables.
+
+        Returns
+        -------
+        dict[str, pandas.DataFrame]
+            Final holdout report tables.
+        """
 
         self.fit_main_effects()
         report = self.holdout_report(bins=bins)
@@ -503,7 +794,18 @@ class GLMStudy:
         return report
 
     def save(self, output_dir: str | Path = "runs") -> Path:
-        """Save study artifacts through ``RunLogger``."""
+        """Save study artifacts through :class:`RunLogger`.
+
+        Parameters
+        ----------
+        output_dir:
+            Parent directory where a timestamped study run folder is created.
+
+        Returns
+        -------
+        pathlib.Path
+            Path to the created run directory.
+        """
 
         logger = RunLogger(output_dir, name="glm_study")
         logger.log_params(
@@ -542,13 +844,30 @@ class GLMStudy:
         return logger.path
 
     def require_split(self) -> None:
-        """Raise if the study has not been split yet."""
+        """Raise if the study has not been split yet.
+
+        Raises
+        ------
+        ValueError
+            If train, validation, or holdout samples are missing.
+        """
 
         if self.train is None or self.validation is None or self.holdout is None:
             raise ValueError("Call study.split(...) before this operation.")
 
     def sample_frame(self, sample: str) -> pd.DataFrame:
-        """Return one raw split by name."""
+        """Return one raw split by name.
+
+        Parameters
+        ----------
+        sample:
+            Split name: ``"train"``, ``"validation"``, or ``"holdout"``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Requested raw split.
+        """
 
         self.require_split()
         if sample == "train":

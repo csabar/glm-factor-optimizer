@@ -14,7 +14,29 @@ def split(
     seed: int = 42,
     time: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Return train, validation, and holdout dataframes."""
+    """Return train, validation, and holdout dataframes.
+
+    Parameters
+    ----------
+    df:
+        Data to split.
+    train:
+        Fraction assigned to the training sample.
+    validation:
+        Fraction assigned to the validation sample.
+    holdout:
+        Fraction assigned to the holdout sample.
+    seed:
+        Random seed used when ``time`` is not supplied.
+    time:
+        Optional time-like column used to split ordered rows instead of random
+        rows.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]
+        Train, validation, and holdout samples.
+    """
 
     total = train + validation + holdout
     if abs(total - 1.0) > 1e-9:

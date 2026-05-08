@@ -13,7 +13,23 @@ from .optimize import PenaltyInput, SparkOptimizationResult, optimize_factor
 
 @dataclass(slots=True)
 class SparkGLM:
-    """Small Spark helper mirroring the pandas ``GLM`` facade."""
+    """Small Spark helper mirroring the pandas ``GLM`` facade.
+
+    Parameters
+    ----------
+    target:
+        Observed outcome column.
+    family:
+        Spark GLR family name.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written by Spark GLR.
+    link:
+        Optional Spark GLR link function override.
+    """
 
     target: str
     family: str = "poisson"
@@ -23,7 +39,20 @@ class SparkGLM:
     link: str | None = None
 
     def fit(self, df: Any, factors: list[str]) -> FittedSparkGLM:
-        """Fit a Spark ML GLR pipeline."""
+        """Fit a Spark ML GLR pipeline.
+
+        Parameters
+        ----------
+        df:
+            Spark dataframe containing target and factor columns.
+        factors:
+            Factor columns to include in the model.
+
+        Returns
+        -------
+        FittedSparkGLM
+            Fitted Spark pipeline model and metadata.
+        """
 
         return fit_glm(
             df,
@@ -37,12 +66,38 @@ class SparkGLM:
         )
 
     def predict(self, df: Any, model: FittedSparkGLM) -> Any:
-        """Return a Spark dataframe with predictions attached."""
+        """Return a Spark dataframe with predictions attached.
+
+        Parameters
+        ----------
+        df:
+            Spark dataframe to score.
+        model:
+            Fitted Spark GLM returned by :meth:`fit`.
+
+        Returns
+        -------
+        pyspark.sql.DataFrame
+            Scored Spark dataframe.
+        """
 
         return model.transform(df)
 
     def report(self, df: Any, bins: int = 10) -> dict[str, Any]:
-        """Return Spark summary and calibration dataframes."""
+        """Return Spark summary and calibration dataframes.
+
+        Parameters
+        ----------
+        df:
+            Scored Spark dataframe.
+        bins:
+            Number of prediction bands used by calibration.
+
+        Returns
+        -------
+        dict[str, pyspark.sql.DataFrame]
+            Summary and calibration tables.
+        """
 
         return {
             "summary": summary(
@@ -63,12 +118,40 @@ class SparkGLM:
         }
 
     def bins(self, df: Any, factor: str, bins: int = 10) -> dict:
-        """Create a numeric binning spec from Spark data."""
+        """Create a numeric binning spec from Spark data.
+
+        Parameters
+        ----------
+        df:
+            Spark dataframe containing the numeric factor.
+        factor:
+            Numeric column to bin.
+        bins:
+            Number of approximate quantile bins to request.
+
+        Returns
+        -------
+        dict
+            JSON-serializable numeric binning spec.
+        """
 
         return make_numeric_bins(df, factor, bins=bins)
 
     def apply(self, df: Any, spec: dict) -> Any:
-        """Apply a saved binning or grouping spec to Spark data."""
+        """Apply a saved binning or grouping spec to Spark data.
+
+        Parameters
+        ----------
+        df:
+            Spark dataframe containing the raw factor referenced by ``spec``.
+        spec:
+            JSON-serializable numeric or categorical spec.
+
+        Returns
+        -------
+        pyspark.sql.DataFrame
+            Spark dataframe with the transformed output column added.
+        """
 
         return apply_spec(df, spec)
 
@@ -91,7 +174,47 @@ class SparkGLM:
         cache_input: bool = True,
         cache_trials: bool = False,
     ) -> SparkOptimizationResult:
-        """Optimize one Spark factor using Optuna on the driver."""
+        """Optimize one Spark factor using Optuna on the driver.
+
+        Parameters
+        ----------
+        train_df:
+            Spark training dataframe.
+        validation_df:
+            Spark validation dataframe.
+        factor:
+            Raw factor column to optimize.
+        kind:
+            Factor kind, either ``"numeric"`` or ``"categorical"``.
+        fixed:
+            Already transformed model columns to keep in the GLM.
+        trials:
+            Number of Optuna trials.
+        max_bins:
+            Maximum number of bins or groups allowed.
+        n_prebins:
+            Number of numeric pre-bins used to define candidate cutpoints.
+        min_bin_size:
+            Minimum bin size used by the small-bin penalty.
+        bin_penalty:
+            Penalty multiplier for additional bins.
+        small_bin_penalty:
+            Penalty multiplier for bins smaller than ``min_bin_size``.
+        penalties:
+            Optional extra penalty callable or named penalty mapping.
+        seed:
+            Optional Optuna sampler seed.
+        cache_input:
+            Whether to cache train and validation Spark dataframes during
+            optimization.
+        cache_trials:
+            Whether to cache transformed trial dataframes.
+
+        Returns
+        -------
+        SparkOptimizationResult
+            Best spec, objective value, and trial history.
+        """
 
         return optimize_factor(
             train_df,

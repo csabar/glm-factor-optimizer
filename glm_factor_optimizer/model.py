@@ -59,7 +59,19 @@ def _offset(df: pd.DataFrame, exposure: str | None) -> np.ndarray | None:
 
 
 def family_from_name(family: str) -> Any:
-    """Return a statsmodels family object for a small supported family name."""
+    """Return a statsmodels family object for a supported family name.
+
+    Parameters
+    ----------
+    family:
+        Family name. Supported values are ``"poisson"``, ``"gamma"``, and
+        ``"gaussian"``.
+
+    Returns
+    -------
+    object
+        Statsmodels family instance.
+    """
 
     normalized = family.lower().strip()
     if normalized == "poisson":
@@ -73,7 +85,29 @@ def family_from_name(family: str) -> Any:
 
 @dataclass(slots=True)
 class FittedGLM:
-    """Fitted GLM plus the metadata needed for prediction."""
+    """Fitted GLM plus the metadata needed for prediction.
+
+    Parameters
+    ----------
+    model:
+        Statsmodels GLM object.
+    result:
+        Fitted statsmodels results object.
+    target:
+        Name of the observed outcome column.
+    family:
+        GLM family name used for fitting.
+    factors:
+        Factor columns included in the model.
+    design_columns:
+        Encoded design-matrix columns created during fitting.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column used during fitting.
+    prediction:
+        Name assigned to prediction output.
+    """
 
     model: Any
     result: Any
@@ -86,11 +120,33 @@ class FittedGLM:
     prediction: str = "predicted"
 
     def predict(self, df: pd.DataFrame) -> pd.Series:
+        """Predict the fitted mean response for new data.
+
+        Parameters
+        ----------
+        df:
+            Data containing the raw factor columns used during fitting.
+
+        Returns
+        -------
+        pandas.Series
+            Predicted mean response indexed like ``df``.
+        """
+
         design = _design_matrix(df, self.factors, columns=self.design_columns)
         predicted = self.result.predict(design, offset=_offset(df, self.exposure))
         return pd.Series(np.asarray(predicted), index=df.index, name=self.prediction)
 
     def coefficients(self) -> pd.DataFrame:
+        """Return fitted coefficients and inference columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Coefficient table with term, estimate, standard error, test
+            statistic, p-value, and confidence interval columns.
+        """
+
         interval = self.result.conf_int()
         return pd.DataFrame(
             {
@@ -115,7 +171,31 @@ def fit_glm(
     weight: str | None = None,
     prediction: str = "predicted",
 ) -> FittedGLM:
-    """Fit a GLM with optional ``log(exposure)`` offset."""
+    """Fit a GLM with an optional ``log(exposure)`` offset.
+
+    Parameters
+    ----------
+    df:
+        Training data.
+    target:
+        Observed outcome column.
+    factors:
+        Factor columns to include in the model.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    exposure:
+        Optional positive exposure column used as a log offset.
+    weight:
+        Optional row-weight column passed as frequency weights.
+    prediction:
+        Prediction column name stored on the returned model.
+
+    Returns
+    -------
+    FittedGLM
+        Fitted model and prediction metadata.
+    """
 
     design = _design_matrix(df, factors)
     y = pd.to_numeric(df[target], errors="coerce").fillna(0.0).to_numpy(dtype=float)
@@ -155,7 +235,28 @@ def fit_rate_glm(
     weight: str | None = None,
     prediction: str = "predicted_count",
 ) -> FittedGLM:
-    """Fit a Poisson GLM for event counts with ``log(exposure)`` as offset."""
+    """Fit a Poisson GLM for event counts with ``log(exposure)`` as offset.
+
+    Parameters
+    ----------
+    df:
+        Training data.
+    target:
+        Observed count outcome column.
+    exposure:
+        Positive exposure column used as a log offset.
+    factors:
+        Factor columns to include in the model.
+    weight:
+        Optional row-weight column passed as frequency weights.
+    prediction:
+        Prediction column name stored on the returned model.
+
+    Returns
+    -------
+    FittedGLM
+        Fitted Poisson model and prediction metadata.
+    """
 
     return fit_glm(
         df,

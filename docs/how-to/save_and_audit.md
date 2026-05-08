@@ -64,7 +64,7 @@ core package does not require MLflow.
 ```python
 from glm_factor_optimizer import RunLogger
 
-logger = RunLogger("runs", name="frequency_model", mlflow=True)
+logger = RunLogger("runs", name="count_rate_model", mlflow=True)
 ```
 
 Use filesystem logging as the default in local notebooks. Use MLflow in

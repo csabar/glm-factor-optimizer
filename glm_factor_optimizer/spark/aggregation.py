@@ -15,7 +15,26 @@ def aggregate_table(
     group_by: str | Sequence[str] | None = None,
     aggregations: AggregationSpec | None = None,
 ) -> Any:
-    """Return grouped rows plus optional named Spark aggregations."""
+    """Return grouped rows plus optional named Spark aggregations.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe to aggregate.
+    group_by:
+        Optional column or columns to group by. When omitted, a single overall
+        row is returned.
+    aggregations:
+        Optional mapping from output column name to ``(source_column,
+        function)``. Supported functions include ``sum``, ``mean``, ``min``,
+        ``max``, ``count``, and ``std``.
+
+    Returns
+    -------
+    pyspark.sql.DataFrame
+        Grouped Spark dataframe with a ``rows`` column and requested
+        aggregations.
+    """
 
     spark = require_pyspark()
     F = spark.functions
@@ -38,7 +57,32 @@ def aggregate_rate_table(
     prediction: str | None = None,
     extras: AggregationSpec | None = None,
 ) -> Any:
-    """Return grouped actual/predicted totals and rate-style diagnostics."""
+    """Return grouped observed/predicted totals and level diagnostics.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe to aggregate.
+    group_by:
+        Optional column or columns to group by.
+    target:
+        Observed outcome column.
+    exposure:
+        Optional exposure column for exposure-adjusted level columns.
+    weight:
+        Optional weight column to total.
+    prediction:
+        Optional predicted outcome column.
+    extras:
+        Optional extra named aggregations, using the same format as
+        :func:`aggregate_table`.
+
+    Returns
+    -------
+    pyspark.sql.DataFrame
+        Grouped observed and predicted totals with mean or exposure-adjusted
+        diagnostics.
+    """
 
     spark = require_pyspark()
     F = spark.functions
@@ -97,4 +141,3 @@ def _as_list(value: str | Sequence[str] | None) -> list[str]:
     if isinstance(value, str):
         return [value]
     return list(value)
-

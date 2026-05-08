@@ -15,7 +15,22 @@ def poisson_deviance(
     predicted: pd.Series | np.ndarray | list[float],
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return mean Poisson deviance."""
+    """Return mean Poisson deviance.
+
+    Parameters
+    ----------
+    actual:
+        Observed nonnegative outcome values.
+    predicted:
+        Predicted mean values.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean Poisson deviance.
+    """
 
     y = np.clip(_array(actual), a_min=0.0, a_max=None)
     mu = np.clip(_array(predicted), a_min=1e-9, a_max=None)
@@ -31,7 +46,22 @@ def gamma_deviance(
     predicted: pd.Series | np.ndarray | list[float],
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return mean Gamma deviance for positive continuous targets."""
+    """Return mean Gamma deviance for positive continuous targets.
+
+    Parameters
+    ----------
+    actual:
+        Observed positive outcome values.
+    predicted:
+        Predicted positive mean values.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean Gamma deviance.
+    """
 
     y = np.clip(_array(actual), a_min=1e-9, a_max=None)
     mu = np.clip(_array(predicted), a_min=1e-9, a_max=None)
@@ -44,7 +74,22 @@ def gaussian_deviance(
     predicted: pd.Series | np.ndarray | list[float],
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return mean Gaussian deviance, equivalent to mean squared error."""
+    """Return mean Gaussian deviance, equivalent to mean squared error.
+
+    Parameters
+    ----------
+    actual:
+        Observed outcome values.
+    predicted:
+        Predicted mean values.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean squared error.
+    """
 
     values = np.square(_array(actual) - _array(predicted))
     return _weighted_mean(values, weight)
@@ -55,7 +100,22 @@ def weighted_mae(
     predicted: pd.Series | np.ndarray | list[float],
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return weighted mean absolute error."""
+    """Return weighted mean absolute error.
+
+    Parameters
+    ----------
+    actual:
+        Observed outcome values.
+    predicted:
+        Predicted mean values.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean absolute error.
+    """
 
     values = np.abs(_array(actual) - _array(predicted))
     return _weighted_mean(values, weight)
@@ -66,7 +126,22 @@ def weighted_rmse(
     predicted: pd.Series | np.ndarray | list[float],
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return weighted root mean squared error."""
+    """Return weighted root mean squared error.
+
+    Parameters
+    ----------
+    actual:
+        Observed outcome values.
+    predicted:
+        Predicted mean values.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted root mean squared error.
+    """
 
     values = np.square(_array(actual) - _array(predicted))
     return float(np.sqrt(_weighted_mean(values, weight)))
@@ -79,7 +154,25 @@ def model_deviance(
     family: str,
     weight: pd.Series | np.ndarray | list[float] | None = None,
 ) -> float:
-    """Return family-specific mean deviance."""
+    """Return family-specific mean deviance.
+
+    Parameters
+    ----------
+    actual:
+        Observed outcome values.
+    predicted:
+        Predicted mean values.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    weight:
+        Optional observation weights.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean deviance for the requested family.
+    """
 
     normalized = family.lower().strip()
     if normalized == "poisson":
@@ -105,7 +198,29 @@ def summary(
     weight: str | None = None,
     family: str = "poisson",
 ) -> pd.DataFrame:
-    """Return one-row actual-vs-predicted summary."""
+    """Return one-row actual-vs-predicted summary.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column for rate-style summary columns.
+    weight:
+        Optional row-weight column for deviance scoring.
+    family:
+        GLM family used for deviance scoring.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One-row summary with totals, ratio, deviance, and mean or exposure
+        columns.
+    """
 
     actual = float(df[target].sum())
     predicted = float(df[prediction].sum())
@@ -135,7 +250,27 @@ def calibration(
     exposure: str | None = None,
     bins: int = 10,
 ) -> pd.DataFrame:
-    """Group rows by predicted value or predicted rate quantile."""
+    """Group rows by predicted value or exposure-adjusted prediction quantile.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used to rank by prediction divided by
+        exposure.
+    bins:
+        Number of quantile bands to create.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Calibration table by prediction band.
+    """
 
     columns = [target, prediction] + ([exposure] if exposure is not None else [])
     work = df[columns].copy()
@@ -168,7 +303,26 @@ def lift_table(
     exposure: str | None = None,
     bins: int = 10,
 ) -> pd.DataFrame:
-    """Return calibration table with lift versus the overall observed level."""
+    """Return calibration table with lift versus the overall observed level.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used for rate-style lift.
+    bins:
+        Number of quantile bands to create.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Calibration table with an added ``lift`` column.
+    """
 
     table = calibration(df, target, prediction, exposure, bins=bins)
     if exposure is not None:

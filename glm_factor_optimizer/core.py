@@ -15,7 +15,22 @@ from .screening import rank_factors
 
 @dataclass(slots=True)
 class GLM:
-    """Small helper for GLM modeling with optional factor optimization."""
+    """Small helper for GLM modeling with optional factor optimization.
+
+    Parameters
+    ----------
+    target:
+        Name of the observed outcome column.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    exposure:
+        Optional exposure column used as a log offset during fitting.
+    weight:
+        Optional row-weight column used during fitting and diagnostics.
+    prediction:
+        Name of the prediction column written by :meth:`predict`.
+    """
 
     target: str
     family: str = "poisson"
@@ -24,7 +39,20 @@ class GLM:
     prediction: str = "predicted"
 
     def fit(self, df: pd.DataFrame, factors: list[str]) -> FittedGLM:
-        """Fit a GLM using the configured target, family, and optional exposure."""
+        """Fit a GLM using the configured outcome settings.
+
+        Parameters
+        ----------
+        df:
+            Training data containing the target and factor columns.
+        factors:
+            Model factor columns to include in the design matrix.
+
+        Returns
+        -------
+        FittedGLM
+            Fitted model object that can score compatible data.
+        """
 
         return fit_glm(
             df,
@@ -37,14 +65,40 @@ class GLM:
         )
 
     def predict(self, df: pd.DataFrame, model: FittedGLM) -> pd.DataFrame:
-        """Return a copy of ``df`` with predictions attached."""
+        """Return a copy of ``df`` with predictions attached.
+
+        Parameters
+        ----------
+        df:
+            Data to score.
+        model:
+            Fitted GLM returned by :meth:`fit`.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Copy of ``df`` with the configured prediction column added.
+        """
 
         result = df.copy()
         result[self.prediction] = model.predict(result)
         return result
 
     def report(self, df: pd.DataFrame, bins: int = 10) -> dict[str, pd.DataFrame]:
-        """Return overall, calibration, and lift tables for scored data."""
+        """Return overall, calibration, and lift tables for scored data.
+
+        Parameters
+        ----------
+        df:
+            Scored data containing target and prediction columns.
+        bins:
+            Number of prediction bands used by calibration and lift tables.
+
+        Returns
+        -------
+        dict[str, pandas.DataFrame]
+            Summary, calibration, and lift tables.
+        """
 
         return {
             "summary": summary(
@@ -72,12 +126,42 @@ class GLM:
         }
 
     def bins(self, df: pd.DataFrame, factor: str, bins: int = 10, method: str = "quantile") -> dict:
-        """Create a numeric binning spec from training data."""
+        """Create a numeric binning spec from training data.
+
+        Parameters
+        ----------
+        df:
+            Data containing the numeric factor.
+        factor:
+            Numeric column to bin.
+        bins:
+            Number of bins to request.
+        method:
+            Binning method, currently ``"quantile"`` or ``"uniform"``.
+
+        Returns
+        -------
+        dict
+            JSON-serializable numeric binning spec.
+        """
 
         return make_numeric_bins(df[factor], bins=bins, column=factor, method=method)
 
     def apply(self, df: pd.DataFrame, spec: dict) -> pd.DataFrame:
-        """Apply a saved binning or grouping spec."""
+        """Apply a saved binning or grouping spec.
+
+        Parameters
+        ----------
+        df:
+            Data containing the raw factor referenced by ``spec``.
+        spec:
+            JSON-serializable numeric or categorical factor spec.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Copy of ``df`` with the transformed output column added.
+        """
 
         return apply_spec(df, spec)
 
@@ -99,7 +183,44 @@ class GLM:
         penalties: PenaltyInput | None = None,
         seed: int | None = 42,
     ) -> OptimizationResult:
-        """Optimize one factor while keeping optional fixed factors unchanged."""
+        """Optimize one factor while keeping optional fixed factors unchanged.
+
+        Parameters
+        ----------
+        train_df:
+            Training data.
+        validation_df:
+            Validation data used to score candidate specs.
+        factor:
+            Raw factor column to optimize.
+        kind:
+            Factor kind, either ``"numeric"`` or ``"categorical"``.
+        fixed:
+            Already transformed model columns to keep in the GLM.
+        fixed_factors:
+            Alias for ``fixed`` kept for readability in manual calls.
+        trials:
+            Number of Optuna trials.
+        max_bins:
+            Maximum number of bins or groups allowed.
+        n_prebins:
+            Number of numeric pre-bins used to define candidate cutpoints.
+        min_bin_size:
+            Minimum bin size used by the default small-bin penalty.
+        bin_penalty:
+            Penalty multiplier for additional bins.
+        small_bin_penalty:
+            Penalty multiplier for bins smaller than ``min_bin_size``.
+        penalties:
+            Optional extra penalty callable or named penalty mapping.
+        seed:
+            Optional Optuna sampler seed.
+
+        Returns
+        -------
+        OptimizationResult
+            Best spec, objective value, and trial history.
+        """
 
         return optimize_factor(
             train_df,
@@ -134,7 +255,31 @@ class GLM:
         max_groups: int = 6,
         min_bin_size: float = 1.0,
     ) -> pd.DataFrame:
-        """Rank candidate factors by simple validation deviance improvement."""
+        """Rank candidate factors by validation deviance improvement.
+
+        Parameters
+        ----------
+        train_df:
+            Training data used to derive simple screening specs.
+        validation_df:
+            Validation data used to compare candidate factors.
+        factors:
+            Raw candidate factor columns to screen.
+        factor_kinds:
+            Optional mapping from factor name to ``"numeric"`` or
+            ``"categorical"``.
+        bins:
+            Number of simple numeric bins used during screening.
+        max_groups:
+            Maximum number of ordered categorical groups used during screening.
+        min_bin_size:
+            Minimum bin size reported by screening diagnostics.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Ranked screening table.
+        """
 
         return rank_factors(
             train_df,
@@ -153,7 +298,7 @@ class GLM:
 
 
 class RateGLM(GLM):
-    """Convenience Poisson count-rate GLM with a required exposure column."""
+    """Convenience Poisson count model with a required exposure column."""
 
     def __init__(
         self,
@@ -162,6 +307,20 @@ class RateGLM(GLM):
         weight: str | None = None,
         prediction: str = "predicted_count",
     ) -> None:
+        """Create a Poisson GLM helper with a log-exposure offset.
+
+        Parameters
+        ----------
+        target:
+            Name of the observed count outcome column.
+        exposure:
+            Positive exposure column used as a log offset.
+        weight:
+            Optional row-weight column.
+        prediction:
+            Name of the prediction column written by :meth:`predict`.
+        """
+
         super().__init__(
             target=target,
             family="poisson",

@@ -18,7 +18,39 @@ from .split import split
 
 @dataclass(slots=True)
 class WorkflowResult:
-    """Artifacts from sequential one-factor optimization and final fitting."""
+    """Artifacts from sequential one-factor optimization and final fitting.
+
+    Parameters
+    ----------
+    train:
+        Scored training data after selected specs are applied.
+    validation:
+        Scored validation data after selected specs are applied.
+    holdout:
+        Scored holdout data after selected specs are applied.
+    model:
+        Final fitted GLM.
+    selected_factors:
+        Transformed model columns selected for the final GLM.
+    selected_raw_factors:
+        Raw input factors whose specs were selected.
+    specs:
+        Mapping from raw factor name to JSON-serializable spec.
+    optimizations:
+        Per-factor optimization results.
+    ranking:
+        Optional candidate-ranking table.
+    validation_report:
+        Validation report tables.
+    holdout_report:
+        Holdout report tables.
+    coefficients:
+        Final model coefficient table.
+    diagnostics:
+        Optional interaction diagnostics.
+    run_dir:
+        Optional filesystem run directory created by logging.
+    """
 
     train: pd.DataFrame
     validation: pd.DataFrame
@@ -38,7 +70,52 @@ class WorkflowResult:
 
 @dataclass(slots=True)
 class GLMWorkflow:
-    """Sequential factor optimization workflow around the simple ``GLM`` API."""
+    """Sequential factor optimization workflow around the simple ``GLM`` API.
+
+    Parameters
+    ----------
+    target:
+        Observed outcome column.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written to scored outputs.
+    trials:
+        Number of Optuna trials per optimized factor.
+    max_bins:
+        Maximum number of bins or groups allowed per factor.
+    n_prebins:
+        Number of numeric pre-bins used to define candidate cutpoints.
+    min_bin_size:
+        Default minimum bin size used by optimization and diagnostics.
+    factor_kinds:
+        Mapping from raw factor name to ``"numeric"`` or ``"categorical"``.
+    penalties:
+        Optional extra optimization penalties.
+    seed:
+        Random seed used for splitting and optimization.
+    rank_candidates:
+        Whether to rank factors before sequential optimization.
+    top_n:
+        Optional number of ranked factors to optimize.
+    screening_bins:
+        Number of numeric bins used during factor screening.
+    screening_max_groups:
+        Maximum number of ordered categorical groups used during screening.
+    interaction_diagnostics:
+        Whether to produce interaction diagnostics after final fitting.
+    interaction_min_bin_size:
+        Optional minimum cell size for interaction diagnostics.
+    output_dir:
+        Optional parent directory for filesystem logging.
+    logger:
+        Optional existing run logger to use instead of creating one.
+    """
 
     target: str
     family: str = "poisson"
@@ -71,7 +148,31 @@ class GLMWorkflow:
         holdout_fraction: float = 0.2,
         time: str | None = None,
     ) -> WorkflowResult:
-        """Optimize selected factors sequentially, then fit a final GLM."""
+        """Optimize selected factors sequentially, then fit a final GLM.
+
+        Parameters
+        ----------
+        df:
+            Source data containing the outcome, factors, and optional exposure
+            or weight columns.
+        factors:
+            Raw candidate factors to optimize.
+        train_fraction:
+            Fraction assigned to the training sample.
+        validation_fraction:
+            Fraction assigned to the validation sample.
+        holdout_fraction:
+            Fraction assigned to the holdout sample.
+        time:
+            Optional time-like column for ordered splitting instead of random
+            splitting.
+
+        Returns
+        -------
+        WorkflowResult
+            Final scored samples, selected specs, model artifacts, reports, and
+            optional logging path.
+        """
 
         train, validation, holdout = split(
             df,
@@ -222,7 +323,59 @@ def run_workflow(
     output_dir: str | Path | None = None,
     seed: int | None = 42,
 ) -> WorkflowResult:
-    """Run the default sequential optimization workflow."""
+    """Run the default sequential optimization workflow.
+
+    Parameters
+    ----------
+    df:
+        Source data.
+    target:
+        Observed outcome column.
+    factors:
+        Raw candidate factors to optimize.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written to scored outputs.
+    factor_kinds:
+        Optional mapping from factor name to ``"numeric"`` or
+        ``"categorical"``.
+    trials:
+        Number of Optuna trials per optimized factor.
+    max_bins:
+        Maximum number of bins or groups allowed per factor.
+    n_prebins:
+        Number of numeric pre-bins used to define candidate cutpoints.
+    min_bin_size:
+        Default minimum bin size used by optimization and diagnostics.
+    penalties:
+        Optional extra optimization penalties.
+    rank_candidates:
+        Whether to rank factors before sequential optimization.
+    top_n:
+        Optional number of ranked factors to optimize.
+    screening_bins:
+        Number of numeric bins used during factor screening.
+    screening_max_groups:
+        Maximum number of ordered categorical groups used during screening.
+    interaction_diagnostics:
+        Whether to produce interaction diagnostics after final fitting.
+    output_dir:
+        Optional parent directory for filesystem logging.
+    seed:
+        Random seed used for splitting and optimization.
+
+    Returns
+    -------
+    WorkflowResult
+        Final scored samples, selected specs, model artifacts, reports, and
+        optional logging path.
+    """
 
     workflow = GLMWorkflow(
         target=target,

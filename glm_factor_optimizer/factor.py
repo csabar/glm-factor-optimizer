@@ -19,7 +19,27 @@ JsonDict = dict[str, Any]
 
 @dataclass(slots=True)
 class FactorBlock:
-    """Interactive workbench for one candidate factor."""
+    """Interactive workbench for one candidate factor.
+
+    Parameters
+    ----------
+    study:
+        Owning :class:`GLMStudy` instance.
+    factor:
+        Raw factor column managed by this block.
+    kind:
+        Factor kind, either ``"numeric"`` or ``"categorical"``.
+    spec:
+        Optional current JSON-serializable binning or grouping spec.
+    optimization:
+        Optional latest optimization result for this factor.
+    target_order_table_:
+        Optional category ordering table created by :meth:`target_order`.
+    last_comparison:
+        Optional latest candidate-vs-current comparison table.
+    metadata:
+        Free-form notebook metadata about how the current proposal was created.
+    """
 
     study: GLMStudy
     factor: str
@@ -32,14 +52,34 @@ class FactorBlock:
 
     @property
     def output(self) -> str | None:
-        """Return the current proposed output column."""
+        """Return the current proposed output column.
+
+        Returns
+        -------
+        str or None
+            Transformed model column from the current spec, or ``None`` when no
+            spec has been proposed.
+        """
 
         if self.spec is None:
             return None
         return str(self.spec["output"])
 
     def coarse_bins(self, bins: int = 10, method: str = "quantile") -> JsonDict:
-        """Create a simple train-derived spec for the factor."""
+        """Create a simple train-derived spec for the factor.
+
+        Parameters
+        ----------
+        bins:
+            Number of numeric bins requested when the factor is numeric.
+        method:
+            Numeric binning method, currently ``"quantile"`` or ``"uniform"``.
+
+        Returns
+        -------
+        dict
+            JSON-serializable factor spec created from the training sample.
+        """
 
         self.study.require_split()
         if self.kind == "numeric":
@@ -63,7 +103,19 @@ class FactorBlock:
         return self.spec
 
     def target_order(self, max_groups: int | None = None) -> pd.DataFrame:
-        """Calculate categorical target order and optionally create grouped spec."""
+        """Calculate categorical target order and optionally create a spec.
+
+        Parameters
+        ----------
+        max_groups:
+            Optional maximum number of categorical groups. When supplied, a
+            grouped categorical spec is stored on this block.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Category ordering table computed from the training sample.
+        """
 
         self.study.require_split()
         self.target_order_table_ = category_target_order(
@@ -88,7 +140,19 @@ class FactorBlock:
         return self.target_order_table_
 
     def set_spec(self, spec: JsonDict) -> FactorBlock:
-        """Set a manual JSON-serializable spec for this factor."""
+        """Set a manual JSON-serializable spec for this factor.
+
+        Parameters
+        ----------
+        spec:
+            Binning or grouping spec whose ``column`` field matches this raw
+            factor.
+
+        Returns
+        -------
+        FactorBlock
+            This block with the manual spec attached.
+        """
 
         if str(spec["column"]) != self.factor:
             raise ValueError("Spec column must match the factor.")
@@ -108,7 +172,32 @@ class FactorBlock:
         penalties: Any = None,
         seed: int | None = None,
     ) -> OptimizationResult:
-        """Optimize this factor while keeping already accepted factors fixed."""
+        """Optimize this factor while keeping accepted factors fixed.
+
+        Parameters
+        ----------
+        trials:
+            Number of Optuna trials.
+        max_bins:
+            Maximum number of bins or groups allowed.
+        n_prebins:
+            Number of numeric pre-bins used to define candidate cutpoints.
+        min_bin_size:
+            Optional minimum bin size override.
+        bin_penalty:
+            Penalty multiplier for additional bins.
+        small_bin_penalty:
+            Penalty multiplier for bins smaller than ``min_bin_size``.
+        penalties:
+            Optional extra penalty callable or named penalty mapping.
+        seed:
+            Optional Optuna sampler seed.
+
+        Returns
+        -------
+        OptimizationResult
+            Best spec, objective value, and trial history.
+        """
 
         result = self.study.optimize_factor_block(
             self.factor,
@@ -128,7 +217,20 @@ class FactorBlock:
         return result
 
     def bin_table(self, sample: str = "train") -> pd.DataFrame:
-        """Return an actual-vs-size table by the current proposed bins/groups."""
+        """Return a grouped summary for the current proposed bins/groups.
+
+        Parameters
+        ----------
+        sample:
+            Split to summarize: ``"train"``, ``"validation"``, or
+            ``"holdout"``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with bin label, bin size, observed outcome total, and row
+            count.
+        """
 
         self._require_spec()
         df = self.study.sample_frame(sample)
@@ -142,7 +244,13 @@ class FactorBlock:
         )
 
     def validation_table(self) -> pd.DataFrame:
-        """Fit the candidate model and return validation diagnostics by this factor."""
+        """Fit the candidate model and return validation diagnostics.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Validation diagnostics grouped by the candidate factor output.
+        """
 
         self._require_spec()
         comparison, scored = self.study.evaluate_candidate(self.factor, self.spec, return_scored=True)
@@ -157,7 +265,13 @@ class FactorBlock:
         )
 
     def compare(self) -> pd.DataFrame:
-        """Compare current accepted model against this candidate spec."""
+        """Compare the current accepted model against this candidate spec.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One-row table with current and candidate validation deviance.
+        """
 
         self._require_spec()
         comparison = self.study.evaluate_candidate(self.factor, self.spec)
@@ -165,14 +279,36 @@ class FactorBlock:
         return comparison
 
     def accept(self, comment: str | None = None) -> FactorBlock:
-        """Accept this proposed spec into the study."""
+        """Accept this proposed spec into the study.
+
+        Parameters
+        ----------
+        comment:
+            Optional audit note stored in the study history.
+
+        Returns
+        -------
+        FactorBlock
+            This block after acceptance.
+        """
 
         self._require_spec()
         self.study.accept(self, comment=comment)
         return self
 
     def reject(self, comment: str | None = None) -> FactorBlock:
-        """Record that this proposed factor/spec was rejected."""
+        """Record that this proposed factor/spec was rejected.
+
+        Parameters
+        ----------
+        comment:
+            Optional audit note stored in the study history.
+
+        Returns
+        -------
+        FactorBlock
+            This block after rejection is recorded.
+        """
 
         self.study.reject(self, comment=comment)
         return self

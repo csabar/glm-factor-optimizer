@@ -37,6 +37,45 @@ def rank_factors(
 ) -> pd.DataFrame:
     """Rank candidate factors by validation deviance improvement.
 
+    Parameters
+    ----------
+    train_df:
+        Training data used to derive simple factor specs and fit screening
+        models.
+    validation_df:
+        Validation data used to compare candidate factors.
+    target:
+        Observed outcome column.
+    factors:
+        Raw candidate factor columns to screen.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    factor_kinds:
+        Optional mapping from factor name to ``"numeric"`` or
+        ``"categorical"``.
+    bins:
+        Number of numeric bins used by the simple screening spec.
+    max_groups:
+        Maximum number of ordered categorical groups used by the simple
+        screening spec.
+    prediction:
+        Prediction column name used internally by screening models.
+    min_bin_size:
+        Threshold used to count small bins in screening diagnostics.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ranked table with deviance improvement, significance-style statistics,
+        missingness, coverage, bin-size diagnostics, specs, and errors.
+
+    Notes
+    -----
     The screening pass intentionally uses simple train-derived specs. It is a
     quick ranking tool; final binning should still be optimized factor by
     factor with ``optimize_factor`` or ``GLMWorkflow``.

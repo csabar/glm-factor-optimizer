@@ -15,7 +15,26 @@ def model_deviance(
     family: str,
     weight: str | None = None,
 ) -> float:
-    """Return family-specific mean deviance as a driver float."""
+    """Return family-specific mean deviance as a driver float.
+
+    Parameters
+    ----------
+    df:
+        Scored Spark dataframe.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family name.
+    weight:
+        Optional row-weight column.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted mean deviance collected to the driver.
+    """
 
     spark = require_pyspark()
     F = spark.functions
@@ -49,7 +68,28 @@ def summary(
     family: str = "poisson",
     weight: str | None = None,
 ) -> Any:
-    """Return a one-row Spark dataframe with actual/predicted summary."""
+    """Return a one-row Spark dataframe with observed/predicted summary.
+
+    Parameters
+    ----------
+    df:
+        Scored Spark dataframe.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column for exposure-adjusted summary columns.
+    family:
+        GLM family used for deviance scoring.
+    weight:
+        Optional row-weight column.
+
+    Returns
+    -------
+    pyspark.sql.DataFrame
+        One-row Spark dataframe with totals, ratio, and deviance.
+    """
 
     spark = require_pyspark()
     F = spark.functions
@@ -75,7 +115,27 @@ def calibration(
     exposure: str | None = None,
     bins: int = 10,
 ) -> Any:
-    """Return a Spark dataframe grouped by predicted level quantile."""
+    """Return a Spark dataframe grouped by predicted level quantile.
+
+    Parameters
+    ----------
+    df:
+        Scored Spark dataframe.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used to rank by prediction divided by
+        exposure.
+    bins:
+        Number of quantile bands to create.
+
+    Returns
+    -------
+    pyspark.sql.DataFrame
+        Calibration table by prediction band.
+    """
 
     spark = require_pyspark()
     F = spark.functions

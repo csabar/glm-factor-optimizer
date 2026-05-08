@@ -1,13 +1,13 @@
 # glm-factor-optimizer
 
 Simple GLM tools for factor binning, grouping, model screening, and workflow
-automation. The package is domain-free: it works for count-rate, severity, and
-other small GLM modeling problems.
+automation. The package is domain-free: it works for count-rate, positive
+continuous, and other small GLM modeling problems.
 
 Professional documentation is available in [docs/index.md](docs/index.md).
 The docs are organized as tutorials, how-to guides, reference, and explanation.
 
-Use `RateGLM` for count-rate/frequency models:
+Use `RateGLM` for count-rate models:
 
 - count target, like `events`
 - exposure column, like `hours`

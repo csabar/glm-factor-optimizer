@@ -8,6 +8,28 @@ from typing import Any
 
 @dataclass(frozen=True, slots=True)
 class SparkDeps:
+    """Container for lazily imported PySpark objects.
+
+    Parameters
+    ----------
+    functions:
+        ``pyspark.sql.functions`` module.
+    types:
+        ``pyspark.sql.types`` module.
+    Window:
+        Spark SQL window helper.
+    Pipeline:
+        Spark ML pipeline class.
+    StringIndexer:
+        Spark ML string indexer class.
+    OneHotEncoder:
+        Spark ML one-hot encoder class.
+    VectorAssembler:
+        Spark ML vector assembler class.
+    GeneralizedLinearRegression:
+        Spark ML generalized linear regression estimator class.
+    """
+
     functions: Any
     types: Any
     Window: Any
@@ -19,7 +41,13 @@ class SparkDeps:
 
 
 def require_pyspark() -> SparkDeps:
-    """Import PySpark lazily and return the pieces used by this backend."""
+    """Import PySpark lazily and return the pieces used by this backend.
+
+    Returns
+    -------
+    SparkDeps
+        Container of PySpark modules and classes used by the Spark backend.
+    """
 
     try:
         from pyspark.ml import Pipeline

@@ -20,7 +20,36 @@ def stratified_sample(
     add_sample_weight: bool = False,
     sample_weight_col: str = "sample_weight",
 ) -> pd.DataFrame:
-    """Return a stratified sample with optional weighted row selection."""
+    """Return a stratified sample with optional weighted row selection.
+
+    Parameters
+    ----------
+    df:
+        Source data to sample from.
+    strata:
+        One or more columns defining strata.
+    size:
+        Total target sample size. Provide exactly one of ``size`` or ``frac``.
+    frac:
+        Fraction of each stratum to sample. Provide exactly one of ``size`` or
+        ``frac``.
+    min_per_group:
+        Minimum rows to keep per stratum where available.
+    seed:
+        Random seed used for reproducible sampling.
+    weight_col:
+        Optional column used as sampling probability within each stratum.
+    add_sample_weight:
+        Whether to add inverse sampling-fraction weights to the result.
+    sample_weight_col:
+        Name of the sample-weight column to add when ``add_sample_weight`` is
+        ``True``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Stratified sample with rows shuffled and index reset.
+    """
 
     if (size is None) == (frac is None):
         raise ValueError("Provide exactly one of size or frac.")
@@ -81,7 +110,22 @@ def missing_strata(
     sample: pd.DataFrame,
     strata: str | Sequence[str],
 ) -> pd.DataFrame:
-    """Return strata combinations present in population but absent in sample."""
+    """Return strata combinations present in population but absent in sample.
+
+    Parameters
+    ----------
+    population:
+        Full reference data.
+    sample:
+        Sampled data to check.
+    strata:
+        One or more columns defining strata.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Distinct strata combinations missing from ``sample``.
+    """
 
     strata_cols = _as_list(strata)
     population_keys = population[strata_cols].drop_duplicates()

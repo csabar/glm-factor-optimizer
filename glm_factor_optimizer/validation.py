@@ -21,7 +21,30 @@ def scored_summary(
     weight: str | None = None,
     label: str | None = None,
 ) -> pd.DataFrame:
-    """Return one-row validation metrics for scored data."""
+    """Return one-row validation metrics for scored data.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family used for deviance scoring.
+    exposure:
+        Optional exposure column for exposure-adjusted summary columns.
+    weight:
+        Optional row-weight column.
+    label:
+        Optional sample label inserted as the first column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One-row summary including deviance, MAE, and RMSE.
+    """
 
     table = summary(
         df,
@@ -48,7 +71,28 @@ def by_factor_report(
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Return actual-vs-predicted diagnostics by one factor."""
+    """Return observed-vs-predicted diagnostics by one factor.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    factor:
+        Factor column used for grouping.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used as group size.
+    weight:
+        Optional weight column used as group size when exposure is absent.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Grouped diagnostics sorted by factor value.
+    """
 
     if exposure is not None:
         table = (
@@ -107,7 +151,30 @@ def train_validation_comparison(
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Return train-vs-validation scored summaries."""
+    """Return train-vs-validation scored summaries.
+
+    Parameters
+    ----------
+    train_df:
+        Scored training data.
+    validation_df:
+        Scored validation data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family used for deviance scoring.
+    exposure:
+        Optional exposure column for exposure-adjusted summary columns.
+    weight:
+        Optional row-weight column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Two-row comparison table labeled ``train`` and ``validation``.
+    """
 
     train = scored_summary(
         train_df,
@@ -141,7 +208,32 @@ def validation_report(
     factors: Sequence[str] | None = None,
     bins: int = 10,
 ) -> dict[str, pd.DataFrame]:
-    """Return a rich validation report for scored data."""
+    """Return a rich validation report for scored data.
+
+    Parameters
+    ----------
+    validation_df:
+        Scored validation data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family used for deviance scoring.
+    exposure:
+        Optional exposure column used by summary, calibration, and lift tables.
+    weight:
+        Optional row-weight column.
+    factors:
+        Optional factor columns for grouped reports.
+    bins:
+        Number of prediction bands used by calibration and lift tables.
+
+    Returns
+    -------
+    dict[str, pandas.DataFrame]
+        Summary, calibration, lift, and optional by-factor tables.
+    """
 
     report = {
         "summary": scored_summary(
@@ -190,7 +282,32 @@ def holdout_final_report(
     factors: Sequence[str] | None = None,
     bins: int = 10,
 ) -> dict[str, pd.DataFrame]:
-    """Return final holdout reports for a scored holdout dataset."""
+    """Return final holdout reports for a scored holdout dataset.
+
+    Parameters
+    ----------
+    holdout_df:
+        Scored holdout data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family used for deviance scoring.
+    exposure:
+        Optional exposure column used by summary, calibration, and lift tables.
+    weight:
+        Optional row-weight column.
+    factors:
+        Optional factor columns for grouped reports.
+    bins:
+        Number of prediction bands used by calibration and lift tables.
+
+    Returns
+    -------
+    dict[str, pandas.DataFrame]
+        Holdout summary, calibration, lift, and optional by-factor tables.
+    """
 
     return validation_report(
         holdout_df,
@@ -205,7 +322,18 @@ def holdout_final_report(
 
 
 def model_version_comparison(versions: Sequence[dict[str, Any]]) -> pd.DataFrame:
-    """Return a compact dataframe from stored model-version metadata."""
+    """Return a compact dataframe from stored model-version metadata.
+
+    Parameters
+    ----------
+    versions:
+        Sequence of model-version dictionaries recorded by a study or workflow.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Compact version table with factors and validation metrics.
+    """
 
     rows = []
     for version in versions:
@@ -230,7 +358,26 @@ def deviance_score(
     family: str,
     weight: str | None = None,
 ) -> float:
-    """Return model deviance for an already scored dataframe."""
+    """Return model deviance for an already scored dataframe.
+
+    Parameters
+    ----------
+    df:
+        Scored data.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    family:
+        GLM family used for deviance scoring.
+    weight:
+        Optional row-weight column.
+
+    Returns
+    -------
+    float
+        Weighted or unweighted family deviance.
+    """
 
     return model_deviance(
         df[target],
@@ -238,4 +385,3 @@ def deviance_score(
         family=family,
         weight=df[weight] if weight else None,
     )
-

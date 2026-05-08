@@ -15,7 +15,25 @@ def aggregate_table(
     group_by: str | Sequence[str] | None = None,
     aggregations: AggregationSpec | None = None,
 ) -> pd.DataFrame:
-    """Return grouped rows plus optional named aggregations."""
+    """Return grouped rows plus optional named aggregations.
+
+    Parameters
+    ----------
+    df:
+        Data to aggregate.
+    group_by:
+        Optional column or columns to group by. When omitted, a single overall
+        row is returned.
+    aggregations:
+        Optional mapping from output column name to ``(source_column,
+        function)``. Supported functions include ``sum``, ``mean``, ``min``,
+        ``max``, ``count``, ``size``, and ``std``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Grouped table with a ``rows`` column and requested aggregations.
+    """
 
     group_cols = _as_list(group_by)
     named = {name: tuple(spec) for name, spec in (aggregations or {}).items()}
@@ -41,7 +59,32 @@ def aggregate_rate_table(
     prediction: str | None = None,
     extras: AggregationSpec | None = None,
 ) -> pd.DataFrame:
-    """Return grouped actual/predicted totals and rate-style diagnostics."""
+    """Return grouped observed/predicted totals and level diagnostics.
+
+    Parameters
+    ----------
+    df:
+        Data to aggregate.
+    group_by:
+        Optional column or columns to group by.
+    target:
+        Observed outcome column.
+    exposure:
+        Optional exposure column for exposure-adjusted level columns.
+    weight:
+        Optional weight column to total.
+    prediction:
+        Optional predicted outcome column.
+    extras:
+        Optional extra named aggregations, using the same format as
+        :func:`aggregate_table`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Grouped observed and predicted totals with mean or exposure-adjusted
+        diagnostics.
+    """
 
     aggregations: dict[str, tuple[str, str]] = {"actual": (target, "sum")}
     if exposure is not None:

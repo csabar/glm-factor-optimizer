@@ -13,7 +13,29 @@ from .split import split
 
 @dataclass(slots=True)
 class SparkWorkflowResult:
-    """Artifacts from a Spark workflow run."""
+    """Artifacts from a Spark workflow run.
+
+    Parameters
+    ----------
+    train:
+        Training Spark dataframe after selected specs are applied.
+    validation:
+        Scored validation Spark dataframe.
+    holdout:
+        Scored holdout Spark dataframe.
+    model:
+        Final fitted Spark GLM.
+    selected_factors:
+        Transformed model columns selected for the final GLM.
+    specs:
+        Mapping from raw factor name to JSON-serializable spec.
+    optimizations:
+        Per-factor optimization results.
+    validation_report:
+        Validation report Spark dataframes.
+    holdout_report:
+        Holdout report Spark dataframes.
+    """
 
     train: Any
     validation: Any
@@ -28,7 +50,41 @@ class SparkWorkflowResult:
 
 @dataclass(slots=True)
 class SparkGLMWorkflow:
-    """Sequential Spark workflow around ``SparkGLM``."""
+    """Sequential Spark workflow around ``SparkGLM``.
+
+    Parameters
+    ----------
+    target:
+        Observed outcome column.
+    family:
+        Spark GLR family name.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written by Spark GLR.
+    link:
+        Optional Spark GLR link function override.
+    trials:
+        Number of Optuna trials per optimized factor.
+    max_bins:
+        Maximum number of bins or groups allowed per factor.
+    n_prebins:
+        Number of numeric pre-bins used to define candidate cutpoints.
+    min_bin_size:
+        Default minimum bin size used by optimization.
+    factor_kinds:
+        Mapping from raw factor name to ``"numeric"`` or ``"categorical"``.
+    penalties:
+        Optional extra optimization penalties.
+    seed:
+        Random seed used for splitting and optimization.
+    cache_input:
+        Whether to cache train and validation dataframes during optimization.
+    cache_trials:
+        Whether to cache transformed trial dataframes.
+    """
 
     target: str
     family: str = "poisson"
@@ -56,7 +112,30 @@ class SparkGLMWorkflow:
         holdout_fraction: float = 0.2,
         time: str | None = None,
     ) -> SparkWorkflowResult:
-        """Optimize each factor sequentially, then fit a final Spark GLM."""
+        """Optimize each factor sequentially, then fit a final Spark GLM.
+
+        Parameters
+        ----------
+        df:
+            Source Spark dataframe.
+        factors:
+            Raw candidate factors to optimize.
+        train_fraction:
+            Fraction assigned to the training sample.
+        validation_fraction:
+            Fraction assigned to the validation sample.
+        holdout_fraction:
+            Fraction assigned to the holdout sample.
+        time:
+            Optional time-like column for ordered splitting instead of random
+            splitting.
+
+        Returns
+        -------
+        SparkWorkflowResult
+            Final Spark model, scored samples, selected specs, optimizations,
+            and reports.
+        """
 
         train, validation, holdout = split(
             df,

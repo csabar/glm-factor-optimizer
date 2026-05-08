@@ -20,7 +20,27 @@ _NUMERIC_TYPES = {
 
 @dataclass(slots=True)
 class FittedSparkGLM:
-    """Fitted Spark PipelineModel with GLM metadata."""
+    """Fitted Spark PipelineModel with GLM metadata.
+
+    Parameters
+    ----------
+    pipeline_model:
+        Fitted Spark ``PipelineModel``.
+    target:
+        Observed outcome column.
+    family:
+        Spark GLR family used for fitting.
+    factors:
+        Factor columns included in the model.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written by Spark GLR.
+    offset_col:
+        Internal offset column name used when exposure is supplied.
+    """
 
     pipeline_model: Any
     target: str
@@ -32,7 +52,18 @@ class FittedSparkGLM:
     offset_col: str = "__offset"
 
     def transform(self, df: Any) -> Any:
-        """Return a Spark dataframe with predictions."""
+        """Return a Spark dataframe with predictions.
+
+        Parameters
+        ----------
+        df:
+            Spark dataframe containing the factor columns.
+
+        Returns
+        -------
+        pyspark.sql.DataFrame
+            Dataframe transformed by the fitted Spark pipeline.
+        """
 
         prepared = _with_offset(df, self.exposure, self.offset_col)
         return self.pipeline_model.transform(prepared)
@@ -51,7 +82,36 @@ def fit_glm(
     max_iter: int = 25,
     reg_param: float = 0.0,
 ) -> FittedSparkGLM:
-    """Fit a Spark ML generalized linear regression pipeline."""
+    """Fit a Spark ML generalized linear regression pipeline.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe used for fitting.
+    target:
+        Observed outcome column.
+    factors:
+        Factor columns to include in the model.
+    family:
+        Spark GLR family name.
+    exposure:
+        Optional exposure column used as a log offset.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written by Spark GLR.
+    link:
+        Optional Spark GLR link function override.
+    max_iter:
+        Maximum Spark GLR iterations.
+    reg_param:
+        Spark GLR regularization parameter.
+
+    Returns
+    -------
+    FittedSparkGLM
+        Fitted Spark pipeline model and metadata.
+    """
 
     spark = require_pyspark()
     stages: list[Any] = []

@@ -19,7 +19,30 @@ def pair_diagnostics(
     weight: str | None = None,
     min_bin_size: float = 1.0,
 ) -> pd.DataFrame:
-    """Score observed-vs-predicted deviations for all factor pairs."""
+    """Score observed-vs-predicted deviations for all factor pairs.
+
+    Parameters
+    ----------
+    df:
+        Scored data containing factor, target, and prediction columns.
+    factors:
+        Transformed factor columns to pair.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used as cell size.
+    weight:
+        Optional weight column used as cell size when exposure is absent.
+    min_bin_size:
+        Minimum cell size required for a pair cell to contribute.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ranked pair table with weighted deviation diagnostics.
+    """
 
     rows: list[dict[str, float | int | str]] = []
     for factor_a, factor_b in combinations(factors, 2):
@@ -80,7 +103,33 @@ def find_interactions(
     weight: str | None = None,
     min_bin_size: float = 1.0,
 ) -> pd.DataFrame:
-    """Return pair interaction candidates that appear in train and validation."""
+    """Return pair interaction candidates that appear in train and validation.
+
+    Parameters
+    ----------
+    train_df:
+        Scored training data.
+    validation_df:
+        Scored validation data.
+    factors:
+        Transformed factor columns to pair.
+    target:
+        Observed outcome column.
+    prediction:
+        Predicted outcome column.
+    exposure:
+        Optional exposure column used as cell size.
+    weight:
+        Optional weight column used as cell size when exposure is absent.
+    min_bin_size:
+        Minimum cell size required for a pair cell to contribute.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Ranked interaction-candidate table combining train and validation
+        diagnostics.
+    """
 
     train = pair_diagnostics(
         train_df,
@@ -185,4 +234,3 @@ def _pair_table(
         )
     table["actual_to_predicted"] = table["actual"] / table["predicted"].clip(lower=1e-9)
     return table
-

@@ -20,7 +20,26 @@ def make_numeric_bins(
     method: str = "quantile",
     relative_error: float = 0.001,
 ) -> JsonDict:
-    """Create a JSON-serializable numeric binning spec from a Spark dataframe."""
+    """Create a JSON-serializable numeric binning spec from Spark data.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe containing the numeric column.
+    column:
+        Numeric column to bin.
+    bins:
+        Number of approximate quantile bins to request.
+    method:
+        Binning method. Spark currently supports ``"quantile"``.
+    relative_error:
+        Relative error passed to Spark ``approxQuantile``.
+
+    Returns
+    -------
+    dict
+        JSON-serializable numeric binning spec.
+    """
 
     if bins < 1:
         raise ValueError("bins must be at least 1.")
@@ -57,7 +76,26 @@ def category_target_order(
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Return a pandas table of categories ordered by observed target level."""
+    """Return a pandas table of categories ordered by observed target level.
+
+    Parameters
+    ----------
+    df:
+        Spark training dataframe.
+    factor:
+        Categorical factor column to order.
+    target:
+        Observed outcome column.
+    exposure:
+        Optional exposure column used as the denominator for the level.
+    weight:
+        Optional row-weight column used for weighted levels.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Category table sorted by observed level.
+    """
 
     spark = require_pyspark()
     F = spark.functions
@@ -100,7 +138,28 @@ def make_categorical_groups(
     weight: str | None = None,
     cutpoints: list[int] | None = None,
 ) -> JsonDict:
-    """Create a target-ordered categorical grouping spec from Spark data."""
+    """Create a target-ordered categorical grouping spec from Spark data.
+
+    Parameters
+    ----------
+    df:
+        Spark training dataframe.
+    factor:
+        Categorical factor column to group.
+    target:
+        Observed outcome column used for ordering categories.
+    exposure:
+        Optional exposure column used as the denominator for category levels.
+    weight:
+        Optional row-weight column used for weighted category levels.
+    cutpoints:
+        Ordered category positions where new groups should start.
+
+    Returns
+    -------
+    dict
+        JSON-serializable categorical grouping spec.
+    """
 
     cutpoints = cutpoints or []
     target_order = category_target_order(df, factor, target, exposure=exposure, weight=weight)
@@ -129,7 +188,22 @@ def make_categorical_groups(
 
 
 def apply_spec(df: Any, spec: JsonDict, output: str | None = None) -> Any:
-    """Apply a saved numeric or categorical spec to a Spark dataframe."""
+    """Apply a saved numeric or categorical spec to a Spark dataframe.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe containing the raw column referenced by ``spec``.
+    spec:
+        JSON-serializable numeric or categorical spec.
+    output:
+        Optional output column override. When omitted, the spec output is used.
+
+    Returns
+    -------
+    pyspark.sql.DataFrame
+        Spark dataframe with the transformed output column added.
+    """
 
     spark = require_pyspark()
     F = spark.functions

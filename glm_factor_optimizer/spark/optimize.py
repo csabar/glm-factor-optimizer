@@ -22,7 +22,29 @@ PenaltyInput = PenaltyFunction | Sequence[PenaltyFunction] | Mapping[str, Penalt
 
 @dataclass(slots=True)
 class SparkOptimizationResult:
-    """Result of optimizing one Spark factor."""
+    """Result of optimizing one Spark factor.
+
+    Parameters
+    ----------
+    factor:
+        Raw factor column that was optimized.
+    kind:
+        Factor kind, either ``"numeric"`` or ``"categorical"``.
+    output:
+        Transformed model column created by the best spec.
+    spec:
+        JSON-serializable best binning or grouping spec.
+    score:
+        Best objective value, including deviance and penalties.
+    validation_deviance:
+        Validation deviance for the best trial before added penalties.
+    trials:
+        Trial history table collected on the driver.
+    fixed:
+        Fixed transformed columns included in the GLM during optimization.
+    penalty_breakdown:
+        Penalty components recorded for the best trial.
+    """
 
     factor: str
     kind: str
@@ -60,6 +82,58 @@ def optimize_factor(
 ) -> SparkOptimizationResult:
     """Optimize one Spark factor using validation deviance.
 
+    Parameters
+    ----------
+    train_df:
+        Spark training dataframe.
+    validation_df:
+        Spark validation dataframe.
+    target:
+        Observed outcome column.
+    factor:
+        Raw factor column to optimize.
+    family:
+        Spark GLR family name.
+    exposure:
+        Optional exposure column used as a log offset.
+    kind:
+        Factor kind, either ``"numeric"`` or ``"categorical"``.
+    fixed:
+        Already transformed model columns to keep in the GLM.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction column written by Spark GLR.
+    trials:
+        Number of Optuna trials.
+    max_bins:
+        Maximum number of bins or groups allowed before extra penalty applies.
+    n_prebins:
+        Number of numeric pre-bins used to define candidate cutpoints.
+    min_bin_size:
+        Minimum bin size used by the small-bin penalty.
+    bin_penalty:
+        Penalty multiplier for additional bins.
+    small_bin_penalty:
+        Penalty multiplier for bins smaller than ``min_bin_size``.
+    penalties:
+        Optional extra penalty callable, list of callables, or mapping of names
+        to callables.
+    seed:
+        Optional Optuna sampler seed.
+    cache_input:
+        Whether to cache train and validation dataframes during optimization.
+    cache_trials:
+        Whether to cache transformed trial dataframes.
+
+    Returns
+    -------
+    SparkOptimizationResult
+        Best spec, score, validation deviance, trial history, and penalty
+        breakdown.
+
+    Notes
+    -----
     Optuna runs on the driver. Each trial applies a JSON spec, fits Spark ML's
     GLR model, scores validation, and returns a scalar objective to Optuna.
     """

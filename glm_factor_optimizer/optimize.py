@@ -26,7 +26,29 @@ JsonDict = dict[str, Any]
 
 @dataclass(slots=True)
 class OptimizationResult:
-    """Result of optimizing one factor's bins or groups."""
+    """Result of optimizing one factor's bins or groups.
+
+    Parameters
+    ----------
+    factor:
+        Raw factor column that was optimized.
+    kind:
+        Factor kind, either ``"numeric"`` or ``"categorical"``.
+    output:
+        Transformed model column created by the best spec.
+    spec:
+        JSON-serializable best binning or grouping spec.
+    score:
+        Best objective value, including deviance and penalties.
+    validation_deviance:
+        Validation deviance for the best trial before added penalties.
+    trials:
+        Trial history table.
+    fixed:
+        Fixed transformed columns included in the GLM during optimization.
+    penalty_breakdown:
+        Penalty components recorded for the best trial.
+    """
 
     factor: str
     kind: str
@@ -187,6 +209,60 @@ def optimize_factor(
 ) -> OptimizationResult:
     """Optimize one numeric or categorical factor using validation deviance.
 
+    Parameters
+    ----------
+    train_df:
+        Training data used to derive candidate specs and fit candidate models.
+    validation_df:
+        Validation data used to score candidate specs.
+    target:
+        Observed outcome column.
+    exposure:
+        Optional exposure column used as a log offset.
+    factor:
+        Raw factor column to optimize.
+    kind:
+        Factor kind, either ``"numeric"`` or ``"categorical"``.
+    family:
+        GLM family name, such as ``"poisson"``, ``"gamma"``, or
+        ``"gaussian"``.
+    fixed:
+        Already transformed model columns to keep in the GLM.
+    fixed_factors:
+        Alias for ``fixed`` for readability in manual workflows.
+    weight:
+        Optional row-weight column.
+    prediction:
+        Prediction name used by candidate models.
+    trials:
+        Number of Optuna trials.
+    max_bins:
+        Maximum number of bins or groups allowed before extra complexity
+        penalty applies.
+    n_prebins:
+        Number of numeric pre-bins used to define candidate cutpoints.
+    min_exposure:
+        Backward-compatible name for the default minimum bin size threshold.
+    min_bin_size:
+        Minimum bin size threshold. When supplied, overrides ``min_exposure``.
+    bin_penalty:
+        Penalty multiplier for each bin and excess bin.
+    small_bin_penalty:
+        Penalty multiplier for each bin below the minimum size threshold.
+    penalties:
+        Optional extra penalty callable, list of callables, or mapping of
+        penalty names to callables.
+    seed:
+        Optional Optuna sampler seed.
+
+    Returns
+    -------
+    OptimizationResult
+        Best spec, score, validation deviance, trial history, and penalty
+        breakdown.
+
+    Notes
+    -----
     Extra penalties can be passed as a callable, a list of callables, or a
     ``dict`` of named callables. Each function receives a context dictionary and
     returns a numeric penalty to add to the objective score.

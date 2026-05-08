@@ -16,7 +16,29 @@ def split(
     seed: int = 42,
     time: str | None = None,
 ) -> tuple[Any, Any, Any]:
-    """Return train, validation, and holdout Spark dataframes."""
+    """Return train, validation, and holdout Spark dataframes.
+
+    Parameters
+    ----------
+    df:
+        Spark dataframe to split.
+    train:
+        Fraction assigned to the training sample.
+    validation:
+        Fraction assigned to the validation sample.
+    holdout:
+        Fraction assigned to the holdout sample.
+    seed:
+        Random seed used when ``time`` is not supplied.
+    time:
+        Optional time-like column used to split ordered rows instead of random
+        rows.
+
+    Returns
+    -------
+    tuple[pyspark.sql.DataFrame, pyspark.sql.DataFrame, pyspark.sql.DataFrame]
+        Train, validation, and holdout Spark dataframes.
+    """
 
     total = train + validation + holdout
     if abs(total - 1.0) > 1e-9:

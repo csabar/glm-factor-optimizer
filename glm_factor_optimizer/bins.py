@@ -38,7 +38,25 @@ def make_numeric_bins(
     column: str | None = None,
     method: str = "quantile",
 ) -> JsonDict:
-    """Create a JSON-serializable numeric binning spec."""
+    """Create a JSON-serializable numeric binning spec.
+
+    Parameters
+    ----------
+    series:
+        Numeric values used to derive bin edges.
+    bins:
+        Number of bins to request.
+    column:
+        Source column name. When omitted, ``series.name`` is used if present.
+    method:
+        Binning method, currently ``"quantile"`` or ``"uniform"``.
+
+    Returns
+    -------
+    dict
+        Numeric binning spec with edges, labels, source column, and output
+        column.
+    """
 
     if bins < 1:
         raise ValueError("bins must be at least 1.")
@@ -78,7 +96,27 @@ def category_target_order(
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Order categories by observed training target level."""
+    """Order categories by observed training target level.
+
+    Parameters
+    ----------
+    df:
+        Training data.
+    factor:
+        Categorical factor column to order.
+    target:
+        Observed outcome column.
+    exposure:
+        Optional exposure column used as the denominator for the level.
+    weight:
+        Optional row-weight column used as the denominator for weighted levels.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Category table sorted by observed level, including measure, actual,
+        level, and credibility columns.
+    """
 
     columns = [factor, target]
     if exposure is not None:
@@ -121,7 +159,29 @@ def make_categorical_groups(
     weight: str | None = None,
     cutpoints: list[int] | None = None,
 ) -> JsonDict:
-    """Create a target-ordered categorical grouping spec from training data."""
+    """Create a target-ordered categorical grouping spec from training data.
+
+    Parameters
+    ----------
+    df:
+        Training data.
+    factor:
+        Categorical factor column to group.
+    target:
+        Observed outcome column used for ordering categories.
+    exposure:
+        Optional exposure column used as the denominator for category levels.
+    weight:
+        Optional row-weight column used for weighted category levels.
+    cutpoints:
+        Ordered category positions where new groups should start.
+
+    Returns
+    -------
+    dict
+        JSON-serializable categorical grouping spec with order, cutpoints,
+        mapping, labels, and training statistics.
+    """
 
     cutpoints = cutpoints or []
     target_order = category_target_order(df, factor, target, exposure=exposure, weight=weight)
@@ -156,7 +216,22 @@ def apply_spec(
     spec: JsonDict,
     output: str | None = None,
 ) -> pd.DataFrame:
-    """Apply a saved numeric or categorical spec to a dataframe."""
+    """Apply a saved numeric or categorical spec to a dataframe.
+
+    Parameters
+    ----------
+    df:
+        Data containing the raw column referenced by ``spec``.
+    spec:
+        JSON-serializable numeric or categorical spec.
+    output:
+        Optional output column override. When omitted, the spec output is used.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Copy of ``df`` with the transformed output column added.
+    """
 
     kind = str(spec["type"])
     column = str(spec["column"])
