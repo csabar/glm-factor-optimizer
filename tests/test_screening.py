@@ -47,6 +47,9 @@ class ScreeningTests(unittest.TestCase):
 
         self.assertEqual(set(ranking["factor"]), {"noise", "score", "segment"})
         self.assertIn(ranking.iloc[0]["factor"], {"score", "segment"})
+        self.assertIn("p_value", ranking.columns)
+        self.assertIn("train_missing_rate", ranking.columns)
+        self.assertIn("validation_measure_coverage", ranking.columns)
         for spec in ranking["spec"]:
             json.dumps(spec)
 
@@ -67,4 +70,3 @@ class ScreeningTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

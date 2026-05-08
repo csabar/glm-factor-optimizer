@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from rate_glm_optimizer import poisson_deviance, summary
+from rate_glm_optimizer import poisson_deviance, summary, weighted_mae, weighted_rmse
 
 
 class MetricsTests(unittest.TestCase):
@@ -27,6 +27,14 @@ class MetricsTests(unittest.TestCase):
         table = summary(frame, target="events", prediction="predicted_count", exposure="hours")
         self.assertEqual(table.loc[0, "rows"], 3)
         self.assertGreater(table.loc[0, "actual_rate"], 0.0)
+
+    def test_weighted_error_metrics(self) -> None:
+        actual = np.array([1.0, 3.0])
+        predicted = np.array([2.0, 1.0])
+        weight = np.array([1.0, 3.0])
+
+        self.assertAlmostEqual(weighted_mae(actual, predicted, weight), 1.75)
+        self.assertAlmostEqual(weighted_rmse(actual, predicted, weight), np.sqrt(3.25))
 
 
 if __name__ == "__main__":

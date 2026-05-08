@@ -50,6 +50,28 @@ def gaussian_deviance(
     return _weighted_mean(values, weight)
 
 
+def weighted_mae(
+    actual: pd.Series | np.ndarray | list[float],
+    predicted: pd.Series | np.ndarray | list[float],
+    weight: pd.Series | np.ndarray | list[float] | None = None,
+) -> float:
+    """Return weighted mean absolute error."""
+
+    values = np.abs(_array(actual) - _array(predicted))
+    return _weighted_mean(values, weight)
+
+
+def weighted_rmse(
+    actual: pd.Series | np.ndarray | list[float],
+    predicted: pd.Series | np.ndarray | list[float],
+    weight: pd.Series | np.ndarray | list[float] | None = None,
+) -> float:
+    """Return weighted root mean squared error."""
+
+    values = np.square(_array(actual) - _array(predicted))
+    return float(np.sqrt(_weighted_mean(values, weight)))
+
+
 def model_deviance(
     actual: pd.Series | np.ndarray | list[float],
     predicted: pd.Series | np.ndarray | list[float],

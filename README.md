@@ -4,6 +4,9 @@ Simple GLM tools for factor binning, grouping, model screening, and workflow
 automation. The package is domain-free: it works for count-rate, severity, and
 other small GLM modeling problems.
 
+Professional documentation is available in [docs/index.md](docs/index.md).
+The docs are organized as tutorials, how-to guides, reference, and explanation.
+
 Use `RateGLM` for count-rate/frequency models:
 
 - count target, like `events`
@@ -127,6 +130,39 @@ workflow = GLMWorkflow(
 result = workflow.fit(df, factors=["score", "segment"])
 print(result.validation_report["summary"])
 print(result.coefficients)
+```
+
+For notebook-style iterative model design, use `GLMStudy`:
+
+```python
+from rate_glm_optimizer import GLMStudy
+
+study = GLMStudy(
+    df,
+    target="events",
+    exposure="hours",
+    prediction="predicted_count",
+    factor_kinds={"segment": "categorical"},
+)
+
+study.split(seed=42)
+ranking = study.rank_candidates(["score", "segment", "region"])
+
+score = study.factor("score")
+score.coarse_bins(bins=10)
+score.optimize(trials=100, max_bins=6)
+score.compare()
+score.accept(comment="stable score shape")
+
+study.fit_main_effects()
+study.validation_report()
+
+refined = study.refine_factor("score", trials=200)
+refined.accept(comment="full-model refinement")
+
+study.find_interactions()
+study.finalize()
+study.save("runs")
 ```
 
 Useful helper modules are available for manual workflows:

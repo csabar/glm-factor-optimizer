@@ -4,6 +4,7 @@ from .aggregation import aggregate_rate_table, aggregate_table
 from .bins import apply_spec, category_risk_order, make_numeric_bins
 from .core import GLM, RateGLM
 from .diagnostics import find_interactions, pair_diagnostics
+from .factor import FactorBlock
 from .metrics import (
     calibration,
     gaussian_deviance,
@@ -12,6 +13,8 @@ from .metrics import (
     model_deviance,
     poisson_deviance,
     summary,
+    weighted_mae,
+    weighted_rmse,
 )
 from .model import FittedGLM, FittedRateGLM, fit_glm, fit_rate_glm
 from .optimize import (
@@ -26,6 +29,8 @@ from .runs import RunLogger
 from .sampling import missing_strata, stratified_sample
 from .screening import rank_factors
 from .split import split
+from .study import GLMStudy
+from .validation import by_factor_report, train_validation_comparison, validation_report
 from .workflow import GLMWorkflow, WorkflowResult, run_workflow
 
 optimize_bins = optimize_factor
@@ -33,7 +38,9 @@ optimize_bins = optimize_factor
 __all__ = [
     "FittedRateGLM",
     "FittedGLM",
+    "FactorBlock",
     "GLM",
+    "GLMStudy",
     "GLMWorkflow",
     "OptimizationResult",
     "RateGLM",
@@ -44,6 +51,7 @@ __all__ = [
     "bin_count_penalty",
     "calibration",
     "category_risk_order",
+    "by_factor_report",
     "fit_rate_glm",
     "fit_glm",
     "find_interactions",
@@ -64,8 +72,12 @@ __all__ = [
     "small_target_penalty",
     "summary",
     "train_validation_gap_penalty",
+    "train_validation_comparison",
     "unstable_relativity_penalty",
     "stratified_sample",
+    "validation_report",
+    "weighted_mae",
+    "weighted_rmse",
     "WorkflowResult",
     "run_workflow",
 ]

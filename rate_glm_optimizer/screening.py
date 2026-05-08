@@ -14,6 +14,11 @@ from .model import fit_glm
 
 JsonDict = dict[str, Any]
 
+try:
+    from scipy.stats import chi2
+except ModuleNotFoundError:  # pragma: no cover - statsmodels normally brings scipy.
+    chi2 = None
+
 
 def rank_factors(
     train_df: pd.DataFrame,
@@ -118,6 +123,9 @@ def rank_factors(
                 labels=list(spec["labels"]),
             )
             improvement = float(baseline_validation_deviance - validation_deviance)
+            effective_n = _effective_n(validation_transformed, weight)
+            degrees_of_freedom = max(int(len(bin_table) - 1), 1)
+            likelihood_ratio_stat = max(improvement * effective_n, 0.0)
             rows.append(
                 {
                     "factor": factor,
@@ -129,6 +137,13 @@ def rank_factors(
                     "validation_deviance": float(validation_deviance),
                     "deviance_improvement": improvement,
                     "relative_improvement": improvement / max(float(baseline_validation_deviance), 1e-9),
+                    "likelihood_ratio_stat": float(likelihood_ratio_stat),
+                    "degrees_of_freedom": degrees_of_freedom,
+                    "p_value": _chi_square_p_value(likelihood_ratio_stat, degrees_of_freedom),
+                    "train_missing_rate": _missing_rate(train_df[factor]),
+                    "validation_missing_rate": _missing_rate(validation_df[factor]),
+                    "train_measure_coverage": _measure_coverage(train_df, factor, exposure, weight),
+                    "validation_measure_coverage": _measure_coverage(validation_df, factor, exposure, weight),
                     "bins": int(len(bin_table)),
                     "min_bin_size": float(bin_table["bin_size"].min()),
                     "small_bins": int((bin_table["bin_size"] < min_bin_size).sum()),
@@ -148,6 +163,19 @@ def rank_factors(
                     "validation_deviance": np.inf,
                     "deviance_improvement": -np.inf,
                     "relative_improvement": -np.inf,
+                    "likelihood_ratio_stat": 0.0,
+                    "degrees_of_freedom": 0,
+                    "p_value": np.nan,
+                    "train_missing_rate": _missing_rate(train_df[factor]) if factor in train_df else np.nan,
+                    "validation_missing_rate": _missing_rate(validation_df[factor])
+                    if factor in validation_df
+                    else np.nan,
+                    "train_measure_coverage": _measure_coverage(train_df, factor, exposure, weight)
+                    if factor in train_df
+                    else np.nan,
+                    "validation_measure_coverage": _measure_coverage(validation_df, factor, exposure, weight)
+                    if factor in validation_df
+                    else np.nan,
                     "bins": 0,
                     "min_bin_size": 0.0,
                     "small_bins": 0,
@@ -239,3 +267,36 @@ def _infer_kind(series: pd.Series) -> str:
         return "numeric"
     return "categorical"
 
+
+def _missing_rate(series: pd.Series) -> float:
+    if len(series) == 0:
+        return np.nan
+    return float(series.isna().mean())
+
+
+def _measure_coverage(
+    df: pd.DataFrame,
+    factor: str,
+    exposure: str | None,
+    weight: str | None,
+) -> float:
+    nonmissing = df[factor].notna()
+    if exposure is not None:
+        total = float(df[exposure].sum())
+        return float(df.loc[nonmissing, exposure].sum() / total) if total else np.nan
+    if weight is not None:
+        total = float(df[weight].sum())
+        return float(df.loc[nonmissing, weight].sum() / total) if total else np.nan
+    return float(nonmissing.mean()) if len(df) else np.nan
+
+
+def _effective_n(df: pd.DataFrame, weight: str | None) -> float:
+    if weight is not None:
+        return float(df[weight].sum())
+    return float(len(df))
+
+
+def _chi_square_p_value(statistic: float, degrees_of_freedom: int) -> float:
+    if chi2 is None or degrees_of_freedom <= 0:
+        return np.nan
+    return float(chi2.sf(statistic, degrees_of_freedom))

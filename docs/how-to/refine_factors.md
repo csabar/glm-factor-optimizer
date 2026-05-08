@@ -1,0 +1,71 @@
+# How To Refine Factors With the Full Model Fixed
+
+Initial factor optimization is useful, but final binning decisions should be
+checked inside the current full model. `GLMStudy.refine_factor()` does that by
+re-optimizing one accepted factor while keeping all other accepted factors fixed.
+
+## Accept an Initial Factor
+
+```python
+age = study.factor("driver_age", kind="numeric")
+age.optimize(trials=100, max_bins=6, n_prebins=12)
+age.accept(comment="Initial driver_age factor")
+```
+
+Add more factors:
+
+```python
+vehicle = study.factor("vehicle_type", kind="categorical")
+vehicle.optimize(trials=100)
+vehicle.accept(comment="Vehicle type grouping")
+
+study.fit_main_effects()
+```
+
+## Refine One Factor
+
+```python
+refined_age = study.refine_factor(
+    "driver_age",
+    trials=200,
+    max_bins=6,
+    n_prebins=16,
+)
+
+refined_age.compare()
+refined_age.bin_table()
+refined_age.validation_table()
+```
+
+The refinement keeps every other accepted factor fixed. If the current accepted
+factor is already in the model, the old version is removed from the fixed set
+while the proposed replacement is evaluated.
+
+## Accept or Leave as Proposal
+
+```python
+refined_age.accept(comment="Accepted full-model driver_age refinement")
+```
+
+If the proposal is not better or not stable:
+
+```python
+refined_age.reject(comment="Rejected because validation gain was too small")
+```
+
+## Refine All Factors
+
+```python
+proposals = study.refine_all(trials=50, accept=False)
+```
+
+This returns one `FactorBlock` per accepted raw factor. Review each block before
+accepting. Automatic acceptance is available:
+
+```python
+study.refine_all(trials=50, accept=True)
+```
+
+Use automatic acceptance only for exploratory baselines or controlled batch
+experiments.
+
