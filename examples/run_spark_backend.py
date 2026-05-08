@@ -1,38 +1,81 @@
-"""Spark backend sketch.
+"""Self-contained Spark backend example.
 
-Run this inside a PySpark environment, for example a managed notebook or a
-local environment with `pip install "glm-factor-optimizer[spark]"`.
+Run inside a PySpark environment, or install locally with:
+
+    pip install "glm-factor-optimizer[spark]"
 """
 
 from __future__ import annotations
 
-from glm_factor_optimizer.spark import SparkGLM, split
+import os
+import sys
+from pathlib import Path
+
+from pyspark.sql import SparkSession
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from glm_factor_optimizer.spark import SparkGLMWorkflow
 
 
-def main(sdf) -> None:
-    train_sdf, valid_sdf, holdout_sdf = split(sdf, seed=42)
-    glm = SparkGLM(
-        target="events",
-        family="poisson",
-        exposure="hours",
-        prediction="predicted_count",
+def make_sample_rows() -> list[tuple[int, float, float, str, str]]:
+    """Create a small neutral event-rate dataset for local Spark examples."""
+
+    rows: list[tuple[int, float, float, str, str]] = []
+    regions = ["north", "south", "east", "west"]
+    equipment = ["pump", "press", "lathe"]
+    for index in range(120):
+        hours = float(1 + (index % 5))
+        machine_age = float(1 + (index % 24))
+        region = regions[index % len(regions)]
+        equipment_type = equipment[index % len(equipment)]
+        base_level = 0.14 * hours
+        age_effect = 0.04 * (machine_age > 12)
+        region_effect = {"north": 0.02, "south": 0.08, "east": 0.04, "west": 0.01}[region]
+        equipment_effect = {"pump": 0.03, "press": 0.06, "lathe": 0.02}[equipment_type]
+        events = int((base_level + age_effect + region_effect + equipment_effect) > 0.25) + int(index % 19 == 0)
+        rows.append((events, hours, machine_age, region, equipment_type))
+    return rows
+
+
+def main() -> None:
+    """Run a local Spark workflow on generated sample data."""
+
+    os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+    os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
+    spark = (
+        SparkSession.builder.master("local[1]")
+        .appName("glm-factor-optimizer-example")
+        .config("spark.ui.enabled", "false")
+        .config("spark.sql.shuffle.partitions", "1")
+        .getOrCreate()
     )
+    spark.sparkContext.setLogLevel("ERROR")
+    try:
+        sdf = spark.createDataFrame(
+            make_sample_rows(),
+            ["events", "hours", "machine_age", "site_region", "equipment_type"],
+        )
+        workflow = SparkGLMWorkflow(
+            target="events",
+            family="poisson",
+            exposure="hours",
+            prediction="predicted_events",
+            trials=3,
+            n_prebins=5,
+            min_bin_size=1.0,
+            factor_kinds={
+                "machine_age": "numeric",
+                "site_region": "categorical",
+            },
+        )
+        result = workflow.fit(sdf, ["machine_age", "site_region"])
+        print("Selected factors:", result.selected_factors)
+        result.validation_report["summary"].show(truncate=False)
+        result.holdout_report["summary"].show(truncate=False)
+    finally:
+        spark.stop()
 
-    result = glm.optimize(
-        train_sdf,
-        valid_sdf,
-        "score",
-        fixed=["segment"],
-        trials=30,
-        n_prebins=8,
-        min_bin_size=1_000.0,
-        cache_input=True,
-    )
 
-    train_sdf = glm.apply(train_sdf, result.spec)
-    valid_sdf = glm.apply(valid_sdf, result.spec)
-    holdout_sdf = glm.apply(holdout_sdf, result.spec)
-
-    model = glm.fit(train_sdf, factors=[result.output, "segment"])
-    scored_holdout = glm.predict(holdout_sdf, model)
-    glm.report(scored_holdout)["summary"].show()
+if __name__ == "__main__":
+    main()
