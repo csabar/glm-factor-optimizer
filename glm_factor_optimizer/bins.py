@@ -71,14 +71,14 @@ def _category_key(value: object) -> str:
     return str(value)
 
 
-def category_risk_order(
+def category_target_order(
     df: pd.DataFrame,
     factor: str,
     target: str,
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Order categories by observed training rate or mean target."""
+    """Order categories by observed training target level."""
 
     columns = [factor, target]
     if exposure is not None:
@@ -121,11 +121,11 @@ def make_categorical_groups(
     weight: str | None = None,
     cutpoints: list[int] | None = None,
 ) -> JsonDict:
-    """Create a risk-ordered categorical grouping spec from training data."""
+    """Create a target-ordered categorical grouping spec from training data."""
 
     cutpoints = cutpoints or []
-    risk = category_risk_order(df, factor, target, exposure=exposure, weight=weight)
-    ordered = [str(value) for value in risk[factor].tolist()]
+    target_order = category_target_order(df, factor, target, exposure=exposure, weight=weight)
+    ordered = [str(value) for value in target_order[factor].tolist()]
     clean_cutpoints = sorted({int(point) for point in cutpoints if 0 < int(point) < len(ordered)})
     boundaries = [0, *clean_cutpoints, len(ordered)]
     mapping: dict[str, str] = {}
@@ -147,7 +147,7 @@ def make_categorical_groups(
         "labels": labels,
         "default": "other",
         "missing": _MISSING,
-        "stats": risk.rename(columns={factor: "category"}).to_dict("records"),
+        "stats": target_order.rename(columns={factor: "category"}).to_dict("records"),
     }
 
 

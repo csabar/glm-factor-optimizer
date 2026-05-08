@@ -1,7 +1,7 @@
 """Simple GLM factor-binning and modeling tools."""
 
 from .aggregation import aggregate_rate_table, aggregate_table
-from .bins import apply_spec, category_risk_order, make_numeric_bins
+from .bins import apply_spec, category_target_order, make_numeric_bins
 from .core import GLM, RateGLM
 from .diagnostics import find_interactions, pair_diagnostics
 from .factor import FactorBlock
@@ -50,7 +50,7 @@ __all__ = [
     "apply_spec",
     "bin_count_penalty",
     "calibration",
-    "category_risk_order",
+    "category_target_order",
     "by_factor_report",
     "fit_rate_glm",
     "fit_glm",

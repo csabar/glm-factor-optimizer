@@ -1,7 +1,7 @@
 """Optional PySpark backend for Spark environments."""
 
 from .aggregation import aggregate_rate_table, aggregate_table
-from .bins import apply_spec, category_risk_order, make_categorical_groups, make_numeric_bins
+from .bins import apply_spec, category_target_order, make_categorical_groups, make_numeric_bins
 from .core import SparkGLM
 from .metrics import calibration, model_deviance, summary
 from .model import FittedSparkGLM, fit_glm
@@ -19,7 +19,7 @@ __all__ = [
     "aggregate_table",
     "apply_spec",
     "calibration",
-    "category_risk_order",
+    "category_target_order",
     "fit_glm",
     "make_categorical_groups",
     "make_numeric_bins",

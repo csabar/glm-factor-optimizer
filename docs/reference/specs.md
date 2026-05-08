@@ -67,13 +67,13 @@ Fields:
 | `type` | Always `"categorical"`. |
 | `column` | Raw input column. |
 | `output` | Transformed group column. |
-| `order` | Training categories ordered by observed risk or mean target. |
-| `cutpoints` | Boundaries over the risk-ordered category list. |
+| `order` | Training categories ordered by observed target level. |
+| `cutpoints` | Boundaries over the target-ordered category list. |
 | `mapping` | Category-to-group mapping. |
 | `labels` | Group labels. |
 | `default` | Value for unseen categories. |
 | `missing` | Internal missing key used during grouping. |
-| `stats` | Training risk table records used to build the grouping. |
+| `stats` | Training target-level table records used to build the grouping. |
 
 Application behavior:
 

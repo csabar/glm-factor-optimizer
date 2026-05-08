@@ -7,7 +7,7 @@ import unittest
 
 import pandas as pd
 
-from glm_factor_optimizer import apply_spec, make_numeric_bins
+from glm_factor_optimizer import apply_spec, category_target_order, make_numeric_bins
 from glm_factor_optimizer.bins import make_categorical_groups
 
 
@@ -32,6 +32,20 @@ class BinningTests(unittest.TestCase):
         json.dumps(spec)
         result = apply_spec(frame, spec)
         self.assertIn("segment_group", result.columns)
+
+    def test_category_target_order_is_public(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "segment": ["a", "a", "b", "b", "c", "c"],
+                "events": [0, 1, 0, 0, 2, 1],
+                "exposure": [1, 1, 1, 1, 1, 1],
+            }
+        )
+
+        ordered = category_target_order(frame, "segment", "events", exposure="exposure")
+
+        self.assertEqual(ordered.iloc[0]["segment"], "b")
+        self.assertIn("level", ordered.columns)
 
 
 if __name__ == "__main__":

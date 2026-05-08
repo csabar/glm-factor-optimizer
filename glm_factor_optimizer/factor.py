@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from .bins import apply_spec, category_risk_order, make_categorical_groups, make_numeric_bins
+from .bins import apply_spec, category_target_order, make_categorical_groups, make_numeric_bins
 from .optimize import OptimizationResult
 from .validation import by_factor_report
 
@@ -26,7 +26,7 @@ class FactorBlock:
     kind: str
     spec: JsonDict | None = None
     optimization: OptimizationResult | None = None
-    risk_table_: pd.DataFrame | None = None
+    target_order_table_: pd.DataFrame | None = None
     last_comparison: pd.DataFrame | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -62,11 +62,11 @@ class FactorBlock:
         self.metadata["source"] = "coarse_bins"
         return self.spec
 
-    def risk_order(self, max_groups: int | None = None) -> pd.DataFrame:
-        """Calculate categorical risk order and optionally create grouped spec."""
+    def target_order(self, max_groups: int | None = None) -> pd.DataFrame:
+        """Calculate categorical target order and optionally create grouped spec."""
 
         self.study.require_split()
-        self.risk_table_ = category_risk_order(
+        self.target_order_table_ = category_target_order(
             self.study.train,
             self.factor,
             self.study.target,
@@ -74,8 +74,8 @@ class FactorBlock:
             weight=self.study.weight,
         )
         if max_groups is not None:
-            group_count = max(1, min(max_groups, len(self.risk_table_)))
-            cutpoints = _even_cutpoints(len(self.risk_table_), group_count)
+            group_count = max(1, min(max_groups, len(self.target_order_table_)))
+            cutpoints = _even_cutpoints(len(self.target_order_table_), group_count)
             self.spec = make_categorical_groups(
                 self.study.train,
                 self.factor,
@@ -84,8 +84,8 @@ class FactorBlock:
                 weight=self.study.weight,
                 cutpoints=cutpoints,
             )
-            self.metadata["source"] = "risk_order"
-        return self.risk_table_
+            self.metadata["source"] = "target_order"
+        return self.target_order_table_
 
     def set_spec(self, spec: JsonDict) -> FactorBlock:
         """Set a manual JSON-serializable spec for this factor."""
@@ -216,4 +216,3 @@ def _even_cutpoints(category_count: int, group_count: int) -> list[int]:
         return []
     raw = [round(index * category_count / group_count) for index in range(1, group_count)]
     return sorted({int(value) for value in raw if 0 < int(value) < category_count})
-

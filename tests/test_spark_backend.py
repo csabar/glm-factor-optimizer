@@ -7,11 +7,17 @@ import unittest
 
 class SparkBackendTests(unittest.TestCase):
     def test_spark_backend_imports_without_pyspark(self) -> None:
-        from glm_factor_optimizer.spark import SparkGLM, SparkGLMWorkflow, aggregate_rate_table
+        from glm_factor_optimizer.spark import (
+            SparkGLM,
+            SparkGLMWorkflow,
+            aggregate_rate_table,
+            category_target_order,
+        )
 
         self.assertEqual(SparkGLM.__name__, "SparkGLM")
         self.assertEqual(SparkGLMWorkflow.__name__, "SparkGLMWorkflow")
         self.assertEqual(aggregate_rate_table.__name__, "aggregate_rate_table")
+        self.assertEqual(category_target_order.__name__, "category_target_order")
 
     def test_lazy_pyspark_error_is_actionable_when_missing(self) -> None:
         from glm_factor_optimizer.spark._deps import require_pyspark

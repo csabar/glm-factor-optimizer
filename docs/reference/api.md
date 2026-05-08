@@ -83,7 +83,7 @@ Methods:
 | Method | Purpose |
 | --- | --- |
 | `coarse_bins(bins=10, method="quantile")` | Create simple train-derived bins or groups. |
-| `risk_order(max_groups=None)` | Calculate categorical risk order. |
+| `target_order(max_groups=None)` | Calculate categorical target order. |
 | `set_spec(spec)` | Use a manual JSON-serializable spec. |
 | `optimize(...)` | Run Optuna for this factor with accepted factors fixed. |
 | `bin_table(sample="train")` | Inspect train, validation, or holdout bin sizes and actuals. |
@@ -177,4 +177,3 @@ The Spark backend is optional and imports PySpark lazily. Install with:
 ```bash
 pip install "glm-factor-optimizer[spark]"
 ```
-

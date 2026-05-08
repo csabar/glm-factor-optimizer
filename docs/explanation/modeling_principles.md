@@ -64,15 +64,18 @@ Professional review should also consider:
 The package supports custom penalties so modelers can encode project-specific
 stability rules.
 
-## Categorical Grouping by Risk Ordering
+## Categorical Grouping by Observed Target Level
 
 High-cardinality categorical variables are converted into an ordered grouping
 problem:
 
-1. Calculate category risk using train data only.
-2. Sort categories by observed risk.
-3. Let cutpoints define groups along that order.
-4. Apply the saved mapping to validation, holdout, and future data.
+1. Calculate each category's observed target level using train data only.
+2. For exposure models, use actual target divided by exposure.
+3. For weighted models, use weighted mean target.
+4. Otherwise, use the category mean target.
+5. Sort categories by that observed target level.
+6. Let cutpoints define groups along that order.
+7. Apply the saved mapping to validation, holdout, and future data.
 
 This makes categorical grouping searchable while keeping the final spec
 inspectable.

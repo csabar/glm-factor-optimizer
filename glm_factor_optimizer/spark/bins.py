@@ -50,14 +50,14 @@ def make_numeric_bins(
     }
 
 
-def category_risk_order(
+def category_target_order(
     df: Any,
     factor: str,
     target: str,
     exposure: str | None = None,
     weight: str | None = None,
 ) -> pd.DataFrame:
-    """Return a pandas table of categories ordered by observed level."""
+    """Return a pandas table of categories ordered by observed target level."""
 
     spark = require_pyspark()
     F = spark.functions
@@ -100,11 +100,11 @@ def make_categorical_groups(
     weight: str | None = None,
     cutpoints: list[int] | None = None,
 ) -> JsonDict:
-    """Create a risk-ordered categorical grouping spec from Spark data."""
+    """Create a target-ordered categorical grouping spec from Spark data."""
 
     cutpoints = cutpoints or []
-    risk = category_risk_order(df, factor, target, exposure=exposure, weight=weight)
-    ordered = [str(value) for value in risk[factor].tolist()]
+    target_order = category_target_order(df, factor, target, exposure=exposure, weight=weight)
+    ordered = [str(value) for value in target_order[factor].tolist()]
     clean_cutpoints = sorted({int(point) for point in cutpoints if 0 < int(point) < len(ordered)})
     boundaries = [0, *clean_cutpoints, len(ordered)]
     labels: list[str] = []
@@ -124,7 +124,7 @@ def make_categorical_groups(
         "labels": labels,
         "default": "other",
         "missing": _MISSING,
-        "stats": risk.rename(columns={factor: "category"}).to_dict("records"),
+        "stats": target_order.rename(columns={factor: "category"}).to_dict("records"),
     }
 
 

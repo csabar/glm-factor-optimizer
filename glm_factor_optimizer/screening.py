@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .bins import apply_spec, category_risk_order, make_categorical_groups, make_numeric_bins
+from .bins import apply_spec, category_target_order, make_categorical_groups, make_numeric_bins
 from .metrics import model_deviance
 from .model import fit_glm
 
@@ -206,8 +206,8 @@ def _screening_spec(
     if kind == "numeric":
         return make_numeric_bins(train_df[factor], bins=bins, column=factor)
     if kind == "categorical":
-        risk = category_risk_order(train_df, factor, target, exposure=exposure, weight=weight)
-        category_count = len(risk)
+        target_order = category_target_order(train_df, factor, target, exposure=exposure, weight=weight)
+        category_count = len(target_order)
         group_count = max(1, min(max_groups, category_count))
         cutpoints = _even_cutpoints(category_count, group_count)
         return make_categorical_groups(

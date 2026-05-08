@@ -139,7 +139,7 @@ For a categorical factor:
 
 ```python
 region = study.factor("site_region", kind="categorical")
-region.risk_order(max_groups=4)
+region.target_order(max_groups=4)
 region.bin_table()
 ```
 
@@ -288,4 +288,3 @@ Saved artifacts include:
 - coefficient table
 - model versions
 - audit history
-

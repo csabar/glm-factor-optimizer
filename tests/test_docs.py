@@ -114,6 +114,7 @@ class DocumentationTests(unittest.TestCase):
             "_".join(["rate", "glm", "optimizer"]),
             "-".join(["rate", "glm", "optimizer"]),
             "".join(["d", "a", "t", "a", "b", "r", "i", "c", "k", "s"]),
+            "".join(["r", "i", "s", "k"]),
             "_".join(["driver", "age"]),
             "_".join(["vehicle", "type"]),
             "_".join(["bonus", "malus"]),
