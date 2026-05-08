@@ -20,18 +20,18 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
 ]
-urls = {
-  Homepage = "https://github.com/csabar/glm-factor-optimizer",
-  Repository = "https://github.com/csabar/glm-factor-optimizer",
-  Documentation = "https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md",
-  Issues = "https://github.com/csabar/glm-factor-optimizer/issues",
-}
 dependencies = [
   "numpy>=1.23",
   "optuna>=3.0",
   "pandas>=1.5",
   "statsmodels>=0.14"
 ]
+
+[project.urls]
+Homepage = "https://github.com/csabar/glm-factor-optimizer"
+Repository = "https://github.com/csabar/glm-factor-optimizer"
+Documentation = "https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md"
+Issues = "https://github.com/csabar/glm-factor-optimizer/issues"
 
 [project.optional-dependencies]
 mlflow = ["mlflow>=2.0"]

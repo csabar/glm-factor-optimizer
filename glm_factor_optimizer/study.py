@@ -549,10 +549,9 @@ class GLMStudy:
 
         if self.current_model is None or self.validation_scored is None or self.train_scored is None:
             self.fit_main_effects()
-        assert self.validation_scored is not None
-        assert self.train_scored is not None
+        train_scored, validation_scored = self._require_scored_frames()
         report = make_validation_report(
-            self.validation_scored,
+            validation_scored,
             target=self.target,
             prediction=self.prediction,
             family=self.family,
@@ -562,8 +561,8 @@ class GLMStudy:
             bins=bins,
         )
         report["train_validation"] = train_validation_comparison(
-            self.train_scored,
-            self.validation_scored,
+            train_scored,
+            validation_scored,
             target=self.target,
             prediction=self.prediction,
             family=self.family,
@@ -591,10 +590,11 @@ class GLMStudy:
         self.require_split()
         if self.current_model is None:
             self.fit_main_effects()
-        assert self.current_model is not None
+        current_model = self._require_current_model()
         _, _, holdout = self._transformed_frames(include_holdout=True)
-        assert holdout is not None
-        self.holdout_scored = self.glm.predict(holdout, self.current_model)
+        if holdout is None:
+            raise RuntimeError("Internal error: holdout frame should exist after require_split().")
+        self.holdout_scored = self.glm.predict(holdout, current_model)
         self.holdout_reports = holdout_final_report(
             self.holdout_scored,
             target=self.target,
@@ -624,11 +624,10 @@ class GLMStudy:
 
         if self.current_model is None or self.train_scored is None or self.validation_scored is None:
             self.fit_main_effects()
-        assert self.train_scored is not None
-        assert self.validation_scored is not None
+        train_scored, validation_scored = self._require_scored_frames()
         self.interaction_diagnostics = find_interaction_candidates(
-            self.train_scored,
-            self.validation_scored,
+            train_scored,
+            validation_scored,
             factors=self.selected_factors,
             target=self.target,
             prediction=self.prediction,
@@ -855,6 +854,27 @@ class GLMStudy:
         if self.train is None or self.validation is None or self.holdout is None:
             raise ValueError("Call study.split(...) before this operation.")
 
+    def _require_current_model(self) -> FittedGLM:
+        current_model = self.current_model
+        if current_model is None:
+            raise RuntimeError("Call study.fit_main_effects() before this operation.")
+        return current_model
+
+    def _require_scored_frames(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        train_scored = self.train_scored
+        validation_scored = self.validation_scored
+        if train_scored is None or validation_scored is None:
+            raise RuntimeError("Call study.fit_main_effects() before this operation.")
+        return train_scored, validation_scored
+
+    def _require_train_validation_frames(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        self.require_split()
+        train = self.train
+        validation = self.validation
+        if train is None or validation is None:
+            raise RuntimeError("Internal error: train and validation splits should exist after require_split().")
+        return train, validation
+
     def sample_frame(self, sample: str) -> pd.DataFrame:
         """Return one raw split by name.
 
@@ -869,16 +889,16 @@ class GLMStudy:
             Requested raw split.
         """
 
-        self.require_split()
+        train, validation = self._require_train_validation_frames()
         if sample == "train":
-            assert self.train is not None
-            return self.train
+            return train
         if sample == "validation":
-            assert self.validation is not None
-            return self.validation
+            return validation
         if sample == "holdout":
-            assert self.holdout is not None
-            return self.holdout
+            holdout = self.holdout
+            if holdout is None:
+                raise RuntimeError("Internal error: holdout split should exist after require_split().")
+            return holdout
         raise ValueError("sample must be 'train', 'validation', or 'holdout'.")
 
     def _current_validation_deviance(self) -> float:
@@ -889,22 +909,21 @@ class GLMStudy:
         return self._scored_deviance(scored)
 
     def _model_version_row(self) -> dict[str, Any]:
-        assert self.train_scored is not None
-        assert self.validation_scored is not None
+        train_scored, validation_scored = self._require_scored_frames()
         return {
             "version": len(self.model_versions) + 1,
             "factors": list(self.selected_factors),
-            "train_deviance": self._scored_deviance(self.train_scored),
-            "validation_deviance": self._scored_deviance(self.validation_scored),
+            "train_deviance": self._scored_deviance(train_scored),
+            "validation_deviance": self._scored_deviance(validation_scored),
             "validation_mae": weighted_mae(
-                self.validation_scored[self.target],
-                self.validation_scored[self.prediction],
-                self.validation_scored[self.weight] if self.weight else None,
+                validation_scored[self.target],
+                validation_scored[self.prediction],
+                validation_scored[self.weight] if self.weight else None,
             ),
             "validation_rmse": weighted_rmse(
-                self.validation_scored[self.target],
-                self.validation_scored[self.prediction],
-                self.validation_scored[self.weight] if self.weight else None,
+                validation_scored[self.target],
+                validation_scored[self.prediction],
+                validation_scored[self.weight] if self.weight else None,
             ),
         }
 
@@ -922,11 +941,9 @@ class GLMStudy:
         exclude_factor: str | None = None,
         include_holdout: bool = False,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None]:
-        self.require_split()
-        assert self.train is not None
-        assert self.validation is not None
-        train = self.train.copy()
-        validation = self.validation.copy()
+        train_frame, validation_frame = self._require_train_validation_frames()
+        train = train_frame.copy()
+        validation = validation_frame.copy()
         holdout = self.holdout.copy() if include_holdout and self.holdout is not None else None
 
         excluded_output = str(self.specs[exclude_factor]["output"]) if exclude_factor in self.specs else None

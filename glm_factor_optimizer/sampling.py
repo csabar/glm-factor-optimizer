@@ -146,7 +146,8 @@ def _target_sizes(
         targets = np.maximum(targets, min_per_group)
         return np.minimum(targets, counts)
 
-    assert size is not None
+    if size is None:
+        raise ValueError("size must be provided when frac is None.")
     if size > int(counts.sum()):
         raise ValueError("size cannot exceed the dataframe row count.")
     minimum = np.minimum(counts, min_per_group).astype(int)
