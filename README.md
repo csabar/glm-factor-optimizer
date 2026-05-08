@@ -4,7 +4,9 @@ Simple GLM tools for factor binning, grouping, model screening, and workflow
 automation. The package is domain-free: it works for count-rate, positive
 continuous, and other small GLM modeling problems.
 
-Full project documentation is included in the source distribution under `docs/`.
+Full project documentation is included in the source distribution under `docs/`
+and browsable on GitHub at
+[docs/index.md](https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md).
 The docs are organized as tutorials, how-to guides, reference, and explanation.
 
 Use `RateGLM` for count-rate models:
