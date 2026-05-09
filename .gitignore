@@ -4,6 +4,8 @@
 .coverage.*
 .env
 .env.*
+.vscode/*
+!.vscode/settings.json
 .pytest_cache/
 .ruff_cache/
 .venv/
