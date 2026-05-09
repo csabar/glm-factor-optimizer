@@ -1,7 +1,7 @@
 # Validation Outputs
 
-Validation functions return pandas dataframes. They are designed for notebook
-inspection, CSV export, and audit artifacts.
+Validation functions return pandas dataframes for notebook inspection, CSV
+export, and saved run artifacts.
 
 ## Summary
 
@@ -82,7 +82,7 @@ Produced by:
 - `train_validation_comparison(...)`
 - `study.validation_report()["train_validation"]`
 
-This report is useful for detecting overfit binning or unstable factors.
+Use this report to spot overfit binning or unstable factors.
 
 ## Model Versions
 
@@ -107,6 +107,6 @@ Holdout reports are produced by:
 - `study.finalize()`
 - `study.holdout_report()`
 
-Professional model governance should treat holdout as final evaluation. Avoid
-using holdout metrics during ordinary factor ranking or bin refinement.
+For reviewed models, treat holdout as final evaluation. Avoid using holdout
+metrics during ordinary factor ranking or bin refinement.
 

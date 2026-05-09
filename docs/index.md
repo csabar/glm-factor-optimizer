@@ -1,18 +1,15 @@
 # glm-factor-optimizer Documentation
 
-This documentation uses a Diataxis-style structure:
+`glm-factor-optimizer` helps you design GLM factors in a way that is easy to
+inspect, rerun, and save. Start with the tutorial if you want the full notebook
+flow, or jump to a how-to guide when you need a specific task.
 
-- **Tutorials** teach the main workflow from beginning to end.
-- **How-to guides** solve focused modeling tasks.
-- **Reference** documents public APIs and data structures.
-- **Explanation** describes architecture and modeling principles.
-
-The recommended professional workflow for this package is notebook-first:
+A typical modeling session looks like this:
 
 1. Split data into train, validation, and holdout.
 2. Rank coarse candidate factors.
 3. Work factor by factor with `FactorBlock`.
-4. Accept stable bins/groups explicitly.
+4. Accept bins/groups deliberately after inspection.
 5. Fit the current main-effects model.
 6. Refine accepted factors with the full model fixed.
 7. Search and test candidate interactions.
@@ -67,7 +64,7 @@ from glm_factor_optimizer import RateGLM
 glm = RateGLM(target="events", exposure="hours")
 ```
 
-Use `GLMWorkflow` when a simple automatic sequential workflow is enough:
+Use `GLMWorkflow` for compact batch baselines:
 
 ```python
 from glm_factor_optimizer import GLMWorkflow

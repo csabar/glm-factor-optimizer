@@ -1,14 +1,14 @@
 # How To Save and Audit a Study
 
-Professional model design workflows need reproducible decisions, not only fitted
-models. `GLMStudy` records an audit history and saves all major artifacts.
+Reviewed modeling work depends on reproducible decisions, not only fitted
+models. `GLMStudy` records an audit history and saves the main artifacts.
 
 ## Record Comments During Modeling
 
 ```python
 age = study.factor("machine_age")
 age.optimize(trials=100)
-age.accept(comment="Accepted 5 bins; stable validation shape")
+age.accept(comment="Accepted five bins after validation check")
 
 equipment = study.factor("equipment_type", kind="categorical")
 equipment.optimize(trials=100)
@@ -58,8 +58,8 @@ The run directory contains:
 
 ## Optional MLflow
 
-The current `RunLogger` supports optional MLflow logging when installed. The
-core package does not require MLflow.
+`RunLogger` can also mirror artifacts to MLflow when MLflow is installed. The
+core package does not require it.
 
 ```python
 from glm_factor_optimizer import RunLogger
@@ -68,4 +68,4 @@ logger = RunLogger("runs", name="count_rate_model", mlflow=True)
 ```
 
 Use filesystem logging as the default in local notebooks. Use MLflow in
-managed notebook or experiment-tracking environments.
+shared notebook or experiment-tracking environments.

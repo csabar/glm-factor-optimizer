@@ -1,8 +1,7 @@
 # How To Run an Automatic Baseline Workflow
 
-The package supports automatic workflows for baselines, benchmarks, and batch
-experiments. The notebook `GLMStudy` workflow remains the recommended path for
-production model design.
+Automatic workflows fit baselines, benchmarks, and batch experiments. Use
+`GLMStudy` for models you expect to inspect and keep.
 
 ## Automatic Study Design
 
@@ -28,8 +27,8 @@ study.auto_design(
 study.validation_report()["summary"]
 ```
 
-This calls the same ranking, factor optimization, and acceptance path that a
-manual notebook would use.
+This uses the same ranking, factor optimization, and acceptance methods as the
+manual notebook flow.
 
 ## Sequential `GLMWorkflow`
 
@@ -52,9 +51,8 @@ workflow = GLMWorkflow(
 result = workflow.fit(df, ["score", "segment", "region", "age"])
 ```
 
-Use `GLMWorkflow` when you want a compact, stateless automatic result. Use
-`GLMStudy` when you want notebook iteration, audit history, refines, and manual
-accept/reject decisions.
+Use `GLMWorkflow` for a compact, stateless result. Use `GLMStudy` for notebook
+iteration, audit history, refinements, and manual accept/reject decisions.
 
 ## Saving Automatic Runs
 

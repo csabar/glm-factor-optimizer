@@ -108,7 +108,7 @@ columns. Interactions are only added to the model after explicit acceptance.
 
 ## Persistence Contract
 
-Specs should remain:
+Keep specs:
 
 - JSON serializable
 - independent of Python objects

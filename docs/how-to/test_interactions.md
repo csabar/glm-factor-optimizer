@@ -62,17 +62,16 @@ study.accept_interaction(
 study.fit_main_effects()
 ```
 
-Interactions should not be accepted only because the validation metric improves.
-Review:
+Do not accept an interaction only because the validation metric improves. Check:
 
 - exposure or weight per interaction cell
 - train/validation consistency
-- coefficient reasonableness
-- business interpretability
+- coefficient plausibility
+- operational interpretation
 - stability over time if a period column is available
 
 ## Automatic Interaction Acceptance
 
 `auto_design(..., accept_interactions=True)` can accept top diagnostics, but the
-recommended professional workflow is manual acceptance in a notebook.
+safer path for reviewed models is manual acceptance in a notebook.
 

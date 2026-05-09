@@ -1,7 +1,7 @@
 # Public API Reference
 
-This page documents the intended public surface. Private helper functions are
-not listed.
+The tables below cover the public API that is meant for notebooks, scripts, and
+workflows. Private helper functions are not listed.
 
 ## `GLMStudy`
 

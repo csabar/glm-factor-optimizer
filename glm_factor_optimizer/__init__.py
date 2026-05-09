@@ -1,5 +1,7 @@
 """Simple GLM factor-binning and modeling tools."""
 
+from importlib.metadata import PackageNotFoundError, version as _package_version
+
 from .aggregation import aggregate_rate_table, aggregate_table
 from .bins import apply_spec, category_target_order, make_numeric_bins
 from .core import GLM, RateGLM
@@ -34,6 +36,11 @@ from .validation import by_factor_report, train_validation_comparison, validatio
 from .workflow import GLMWorkflow, WorkflowResult, run_workflow
 
 optimize_bins = optimize_factor
+
+try:
+    __version__ = _package_version("glm-factor-optimizer")
+except PackageNotFoundError:  # pragma: no cover - source tree without installed metadata.
+    __version__ = "0.1.0"
 
 __all__ = [
     "FittedRateGLM",
@@ -79,5 +86,6 @@ __all__ = [
     "weighted_mae",
     "weighted_rmse",
     "WorkflowResult",
+    "__version__",
     "run_workflow",
 ]

@@ -1,16 +1,15 @@
 # Tutorial: Notebook GLM Factor Study Workflow
 
-This tutorial shows the preferred workflow for professional model design:
-interactive, auditable, and validation-driven.
+In this notebook workflow, you rank candidate factors, optimize bins/groups,
+accept a small model, test an interaction, and save the artifacts.
 
 The example models incident counts per site operating hour. The same pattern
-can also be used for defects per machine hour, orders per visit, support tickets
-per active account, service requests per active account, or positive continuous outcomes with a
-Gamma GLM.
+also works for defects per machine hour, orders per visit, support tickets per
+active account, or positive continuous outcomes with a Gamma GLM.
 
 ## 1. Create Example Data
 
-The tutorial is self-contained so it can be copied into a notebook.
+The example data is generated in the notebook.
 
 ```python
 import numpy as np
@@ -71,7 +70,7 @@ study = GLMStudy(
 )
 ```
 
-`GLMStudy` owns the modeling state:
+`GLMStudy` keeps track of the modeling state:
 
 - raw data
 - train, validation, and holdout splits
@@ -93,9 +92,8 @@ train, validation, holdout = study.split(
 )
 ```
 
-The package uses the validation sample for model design decisions. Holdout is
-reserved for final evaluation and is not scored during ordinary ranking or
-factor optimization.
+Use validation for design decisions. Keep holdout for final evaluation; ordinary
+ranking and factor optimization do not score it.
 
 ## 4. Rank Candidate Factors
 
@@ -122,9 +120,9 @@ ranking[
 ].head(20)
 ```
 
-Ranking is only screening. It is not final variable selection. A good factor
-should still pass human review for stability, interpretability, and operational
-reasonableness.
+Ranking is only screening, not final variable selection. Before accepting a
+factor, check stability, interpretation, and whether the grouping will be usable
+in practice.
 
 ## 5. Build One Factor Block
 
@@ -166,7 +164,7 @@ age.validation_table()
 ## 7. Accept or Reject
 
 ```python
-age.accept(comment="Stable machine_age shape; accepted for the first model")
+age.accept(comment="Five-bin machine_age proposal looked consistent")
 ```
 
 Rejecting also records an audit event:
@@ -184,7 +182,7 @@ in the study history.
 equipment = study.factor("equipment_type", kind="categorical")
 equipment.optimize(trials=5, min_bin_size=20.0)  # use more trials in production
 equipment.compare()
-equipment.accept(comment="Equipment grouping is stable")
+equipment.accept(comment="Equipment grouping looked consistent")
 ```
 
 ## 9. Fit the Current Main-Effects Model
@@ -230,7 +228,8 @@ Or propose refinements for all accepted factors:
 proposals = study.refine_all(trials=5, accept=False)
 ```
 
-Automatic acceptance is available, but notebook review is recommended.
+You can set `accept=True`, but review proposals first for any model you intend
+to keep.
 
 ## 11. Search for Interactions
 
@@ -248,13 +247,13 @@ test = study.test_interaction("machine_age", "equipment_type")
 test
 ```
 
-Accept only if it is stable and explainable:
+Accept only after checking that the pattern is consistent and explainable:
 
 ```python
 study.accept_interaction(
     "machine_age",
     "equipment_type",
-    comment="Accepted after reviewing cell stability",
+    comment="Accepted after checking interaction cells",
 )
 study.fit_main_effects()
 ```
@@ -266,8 +265,8 @@ holdout_report = study.finalize()
 holdout_report["summary"]
 ```
 
-`finalize()` scores holdout and records a final audit event. Use it once the
-model design is complete.
+`finalize()` scores holdout and records a final audit event. Use it when the
+model design is ready for final evaluation.
 
 ## 13. Save the Study
 

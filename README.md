@@ -10,9 +10,42 @@ automation. The package is domain-free: it works for count-rate, positive
 continuous, and other small GLM modeling problems.
 
 Full project documentation is included in the source distribution under `docs/`
-and browsable on GitHub at
-[docs/index.md](https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md).
+and published at
+[csabar.github.io/glm-factor-optimizer](https://csabar.github.io/glm-factor-optimizer/).
 The docs are organized as tutorials, how-to guides, reference, and explanation.
+
+Minimal runnable example:
+
+```python
+import pandas as pd
+
+from glm_factor_optimizer import RateGLM, split
+
+df = pd.DataFrame(
+    [
+        {
+            "events": int((index % 7 == 0) + (index % 10 > 6)),
+            "hours": 1.0 + 0.5 * (index % 4),
+            "score": (index % 10) / 10,
+            "segment": ["standard", "plus", "premium"][index % 3],
+        }
+        for index in range(60)
+    ]
+)
+
+train, valid, _ = split(df, seed=42)
+
+glm = RateGLM(target="events", exposure="hours")
+score_spec = glm.bins(train, "score", bins=4)
+
+train = glm.apply(train, score_spec)
+valid = glm.apply(valid, score_spec)
+
+model = glm.fit(train, factors=[score_spec["output"], "segment"])
+valid = glm.predict(valid, model)
+
+print(glm.report(valid)["summary"])
+```
 
 Use `RateGLM` for count-rate models:
 
@@ -159,7 +192,7 @@ score = study.factor("score")
 score.coarse_bins(bins=10)
 score.optimize(trials=100, max_bins=6)
 score.compare()
-score.accept(comment="stable score shape")
+score.accept(comment="score bins looked consistent")
 
 study.fit_main_effects()
 study.validation_report()

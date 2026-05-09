@@ -1,8 +1,8 @@
 # Modeling Principles
 
-This package is designed for controlled GLM model design. The goal is not to
-maximize a validation metric at any cost. The goal is a stable, explainable,
-auditable model.
+Good GLM factor design is not just a search for the lowest validation score.
+Accepted bins, groups, and interactions work best when they are easy to inspect,
+reproduce, and explain.
 
 ## Train, Validation, Holdout
 
@@ -21,8 +21,8 @@ ordinary design work.
 
 ## One Factor at a Time
 
-Iterative GLM factor-design workflows are useful because they keep model decisions inspectable.
-Optimizing one factor at a time allows the modeler to ask:
+Optimizing one factor at a time keeps the review manageable. For each proposal,
+ask:
 
 - Does this factor improve validation performance?
 - Are the bins stable?
@@ -30,18 +30,18 @@ Optimizing one factor at a time allows the modeler to ask:
 - Is the shape explainable?
 - Does the result still make sense after other factors are included?
 
-`GLMStudy.refine_factor()` supports this by re-optimizing a factor while all
-other accepted factors remain fixed.
+`GLMStudy.refine_factor()` re-optimizes one factor while all other accepted
+factors remain fixed.
 
 ## Coarse First, Refine Later
 
-A strong workflow is:
+A practical workflow is:
 
 1. Create coarse bins/groups for screening.
-2. Accept a simple stable factor.
+2. Accept a simple factor that behaves consistently.
 3. Fit the model with accepted factors.
 4. Refine factors inside the current full model.
-5. Accept only improvements that are stable and explainable.
+5. Accept only improvements that are consistent and explainable.
 
 This avoids over-investing in a single factor before the rest of the model is
 known.
@@ -49,20 +49,19 @@ known.
 ## Validation Performance Is Not the Only Criterion
 
 Optuna can find small metric improvements that are not worth accepting.
-Professional review should also consider:
+Also check:
 
 - number of bins
 - minimum exposure, weight, or row count
 - minimum target count
 - train-validation gap
-- stability of relativities
-- monotonicity or shape reasonableness
+- stability of fitted level changes
+- monotonicity or shape plausibility
 - missing value behavior
 - unseen category behavior
 - operational simplicity
 
-The package supports custom penalties so modelers can encode project-specific
-stability rules.
+Use custom penalties to encode project-specific stability rules.
 
 ## Categorical Grouping by Observed Target Level
 
@@ -77,13 +76,13 @@ problem:
 6. Let cutpoints define groups along that order.
 7. Apply the saved mapping to validation, holdout, and future data.
 
-This makes categorical grouping searchable while keeping the final spec
-inspectable.
+The optimizer can then search over group cutpoints while the saved spec remains
+readable.
 
-## Interactions Are Candidates, Not Automatic Truth
+## Interactions Are Candidates, Not Decisions
 
-Interaction diagnostics identify where the main-effects model may be missing a
-pattern. They do not prove that an interaction should be added.
+Interaction diagnostics show where the main-effects model may be missing a
+pattern. Treat them as leads, not decisions.
 
 Accept interactions only after checking:
 
@@ -91,11 +90,11 @@ Accept interactions only after checking:
 - train and validation consistency
 - coefficient stability
 - practical interpretability
-- whether the interaction duplicates an already accepted business rule
+- whether the interaction duplicates an already accepted modeling rule
 
 ## Auditability
 
-Every accepted modeling decision should be reproducible. `GLMStudy` records:
+`GLMStudy` records the pieces used to reproduce accepted modeling decisions:
 
 - accepted specs
 - rejected proposals
@@ -105,5 +104,4 @@ Every accepted modeling decision should be reproducible. `GLMStudy` records:
 - validation reports
 - holdout reports after finalization
 
-This audit trail matters for model review, peer review, and future model
-maintenance.
+The saved history makes later review and model maintenance much easier.

@@ -1,8 +1,8 @@
 # Architecture
 
-`glm-factor-optimizer` is organized in layers. Each layer is useful on its own,
-but the preferred professional workflow is built from the lower layers instead
-of hiding them.
+`glm-factor-optimizer` keeps the low-level pieces visible. You can use the
+automatic workflows, or call the same binning, fitting, scoring, and logging
+functions yourself.
 
 ## Layer 1: Specs and Model Primitives
 
@@ -23,7 +23,7 @@ Responsibilities:
 - optimize one factor at a time
 - define reusable optimization penalties
 
-This layer is intentionally small and domain-free.
+Core mechanics live here.
 
 ## Layer 2: Analysis Helpers
 
@@ -45,7 +45,7 @@ Responsibilities:
 - produce validation reports
 - save run artifacts
 
-These modules support both notebook modeling and automatic workflows.
+Use them in notebooks or as building blocks for automatic workflows.
 
 ## Layer 3: Notebook Study
 
@@ -64,8 +64,8 @@ Responsibilities:
 - test interactions explicitly
 - finalize and save model artifacts
 
-`GLMStudy` is the recommended interface for iterative GLM factor design because it
-keeps the process interactive and reviewable.
+Use `GLMStudy` when you want to design factors step by step and keep a record of
+the choices you made.
 
 ## Layer 4: Automatic Workflow
 
@@ -73,9 +73,8 @@ Main module:
 
 - `workflow.py`
 
-`GLMWorkflow` is a compact automatic wrapper. It is useful for baselines,
-experiments, and examples. It is not meant to replace the notebook workbench for
-professional model design.
+`GLMWorkflow` is a compact automatic wrapper for baselines, experiments, and
+examples. For close review, use `GLMStudy` instead.
 
 ## Layer 5: Spark Backend
 
@@ -83,14 +82,13 @@ Spark modules live under:
 
 - `glm_factor_optimizer.spark`
 
-The Spark backend is separate so pandas users do not need PySpark installed.
-Spark imports are lazy. The long-term design is to keep the same conceptual
-objects and specs while allowing Spark dataframes and Spark GLM jobs in
-Spark-compatible environments.
+Spark support lives in its own package namespace, so pandas users can install
+the core package without PySpark. Spark imports are lazy, and the same JSON
+specs can be used with Spark dataframes and Spark GLM jobs.
 
 ## Data Flow
 
-The standard flow is:
+A common flow is:
 
 ```text
 raw dataframe
@@ -110,7 +108,7 @@ raw dataframe
 
 ## Why Specs Are JSON Dictionaries
 
-Specs are simple dictionaries because they need to be:
+Specs are simple dictionaries so they are:
 
 - easy to inspect in notebooks
 - easy to write to JSON
@@ -118,4 +116,4 @@ Specs are simple dictionaries because they need to be:
 - portable to Spark or other execution engines
 - suitable for audit review
 
-This is more durable than storing opaque transformer objects.
+That keeps saved specs readable and portable.

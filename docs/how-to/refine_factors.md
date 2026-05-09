@@ -1,8 +1,8 @@
 # How To Refine Factors With the Full Model Fixed
 
-Initial factor optimization is useful, but final binning decisions should be
-checked inside the current full model. `GLMStudy.refine_factor()` does that by
-re-optimizing one accepted factor while keeping all other accepted factors fixed.
+After you have a main-effects model, re-check important factors inside that
+model. `GLMStudy.refine_factor()` re-optimizes one accepted factor while keeping
+all other accepted factors fixed.
 
 ## Accept an Initial Factor
 

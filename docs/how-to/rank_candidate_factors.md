@@ -53,7 +53,7 @@ Prefer factors that:
 - have stable train and validation behavior
 - cover enough exposure, weight, or rows
 - have low missing rate or a meaningful missing group
-- can be explained to model reviewers
+- can be explained to someone reviewing the model
 - avoid too many bins for a tiny improvement
 
 Do not accept factors only because the screening p-value is small. In large
