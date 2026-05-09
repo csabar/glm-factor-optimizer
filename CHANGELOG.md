@@ -21,6 +21,8 @@ No unreleased changes yet.
 - Added top-level `split(...)` support for Spark DataFrames.
 - Added public documentation examples for manual Spark fitting and Spark-native
   factor screening.
+- Added MkDocs configuration, CI documentation builds, and GitHub Pages
+  publishing workflow.
 - Added documentation guards so public examples do not recommend converting
   large Spark modeling tables to pandas.
 

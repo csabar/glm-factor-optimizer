@@ -33,7 +33,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/csabar/glm-factor-optimizer"
 Repository = "https://github.com/csabar/glm-factor-optimizer"
-Documentation = "https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md"
+Documentation = "https://csabar.github.io/glm-factor-optimizer/"
 Changelog = "https://github.com/csabar/glm-factor-optimizer/blob/main/CHANGELOG.md"
 Issues = "https://github.com/csabar/glm-factor-optimizer/issues"
 
