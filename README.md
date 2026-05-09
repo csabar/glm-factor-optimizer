@@ -1,5 +1,10 @@
 # glm-factor-optimizer
 
+[![CI](https://github.com/csabar/glm-factor-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/csabar/glm-factor-optimizer/actions/workflows/ci.yml)
+[![Security](https://github.com/csabar/glm-factor-optimizer/actions/workflows/security.yml/badge.svg)](https://github.com/csabar/glm-factor-optimizer/actions/workflows/security.yml)
+[![License](https://img.shields.io/github/license/csabar/glm-factor-optimizer)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
+
 Simple GLM tools for factor binning, grouping, model screening, and workflow
 automation. The package is domain-free: it works for count-rate, positive
 continuous, and other small GLM modeling problems.
