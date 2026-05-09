@@ -13,6 +13,7 @@ Full project documentation is included in the source distribution under `docs/`
 and published at
 [csabar.github.io/glm-factor-optimizer](https://csabar.github.io/glm-factor-optimizer/).
 The docs are organized as tutorials, how-to guides, reference, and explanation.
+Release notes are maintained in [CHANGELOG.md](CHANGELOG.md).
 
 Minimal runnable example:
 
@@ -238,6 +239,16 @@ model = glm.fit(train_sdf, factors=[score_spec["output"], "segment"])
 valid_sdf = glm.predict(valid_sdf, model)
 ```
 
+The top-level notebook helpers also dispatch on Spark dataframes:
+
+```python
+from glm_factor_optimizer import RateGLM
+
+glm = RateGLM(target_col="events", exposure_col="hours")
+model = glm.fit(train_sdf, factors=["score", "segment"])
+valid_sdf = glm.predict(valid_sdf, model)
+```
+
 Spark Optuna optimization runs Optuna on the driver and Spark GLM jobs inside
 each trial:
 
@@ -252,6 +263,38 @@ result = glm.optimize(
     cache_trials=False,
 )
 ```
+
+For a Spark-native factor screening workflow, keep the data in Spark:
+
+```python
+from glm_factor_optimizer import RateGLM, split
+
+sdf = spark.table("catalog.schema.modeling_table")
+train, valid, holdout = split(sdf)
+
+candidate_factors = [
+    "event_type",
+    "region",
+    "service_channel",
+    "equipment_type",
+]
+
+glm = RateGLM(
+    candidate_factors=candidate_factors,
+    target_col="events",
+    exposure_col="hours",
+    family="poisson",
+    prediction_col="predicted_events",
+    top_n=10,
+)
+glm.fit(train, validation_df=valid)
+
+display(glm.identified_factors_)
+scored_holdout = glm.predict(holdout)
+```
+
+This path keeps the modeling table as a Spark dataframe and fits with Spark
+ML generalized linear regression.
 
 Install locally with Spark support using:
 

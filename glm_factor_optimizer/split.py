@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from ._backend import is_spark_dataframe
+
 
 def split(
     df: pd.DataFrame,
@@ -19,7 +21,7 @@ def split(
     Parameters
     ----------
     df:
-        Data to split.
+        Pandas or Spark dataframe to split.
     train:
         Fraction assigned to the training sample.
     validation:
@@ -37,6 +39,18 @@ def split(
     tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]
         Train, validation, and holdout samples.
     """
+
+    if is_spark_dataframe(df):
+        from .spark.split import split as spark_split
+
+        return spark_split(
+            df,
+            train=train,
+            validation=validation,
+            holdout=holdout,
+            seed=seed,
+            time=time,
+        )
 
     total = train + validation + holdout
     if abs(total - 1.0) > 1e-9:

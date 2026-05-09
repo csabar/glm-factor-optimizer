@@ -10,16 +10,28 @@ import warnings
 
 
 class SparkBackendTests(unittest.TestCase):
+    def test_top_level_spark_rate_glm_import_is_lazy(self) -> None:
+        import glm_factor_optimizer as public_api
+
+        self.assertNotIn("SparkRateGLM", public_api.__dict__)
+
+        from glm_factor_optimizer import SparkRateGLM
+
+        self.assertIs(SparkRateGLM, public_api.SparkRateGLM)
+        self.assertEqual(SparkRateGLM.__name__, "RateGLM")
+
     def test_spark_backend_imports_without_pyspark(self) -> None:
         from glm_factor_optimizer.spark import (
             SparkGLM,
             SparkGLMWorkflow,
+            RateGLM,
             aggregate_rate_table,
             category_target_order,
         )
 
         self.assertEqual(SparkGLM.__name__, "SparkGLM")
         self.assertEqual(SparkGLMWorkflow.__name__, "SparkGLMWorkflow")
+        self.assertEqual(RateGLM.__name__, "RateGLM")
         self.assertEqual(aggregate_rate_table.__name__, "aggregate_rate_table")
         self.assertEqual(category_target_order.__name__, "category_target_order")
 
@@ -36,7 +48,9 @@ class SparkBackendTests(unittest.TestCase):
             self.skipTest("Set GLM_FACTOR_OPTIMIZER_RUN_SPARK_TESTS=1 to run local Spark integration tests.")
 
         try:
+            from pyspark.sql import DataFrame as SparkDataFrame
             from pyspark.sql import SparkSession
+            from pyspark.sql import functions as F
         except ModuleNotFoundError:
             self.skipTest("PySpark is not installed.")
 
@@ -54,6 +68,10 @@ class SparkBackendTests(unittest.TestCase):
             optimize_factor,
             split,
         )
+        from glm_factor_optimizer import GLM as PublicGLM
+        from glm_factor_optimizer import RateGLM as PublicRateGLM
+        from glm_factor_optimizer import split as public_split
+        from glm_factor_optimizer.spark.model import FittedSparkGLM
 
         spark = (
             SparkSession.builder.master("local[1]")
@@ -98,6 +116,29 @@ class SparkBackendTests(unittest.TestCase):
             self.assertEqual(scored_validation.select("predicted_events").count(), validation_transformed.count())
             self.assertGreater(glm.report(scored_validation)["summary"].collect()[0]["predicted"], 0.0)
 
+            public_glm = PublicGLM(target="events", exposure="hours", prediction="predicted_events")
+            public_model = public_glm.fit(train, ["machine_age", "site_region"])
+            self.assertIsInstance(public_model, FittedSparkGLM)
+            public_scored_validation = public_glm.predict(validation, public_model)
+            self.assertIsInstance(public_scored_validation, SparkDataFrame)
+            public_report = public_glm.report(public_scored_validation)
+            self.assertIsInstance(public_report["summary"], SparkDataFrame)
+            self.assertIsInstance(public_report["calibration"], SparkDataFrame)
+            self.assertNotIn("lift", public_report)
+            public_spec = public_glm.bins(train, "machine_age", bins=4)
+            public_applied = public_glm.apply(train, public_spec)
+            self.assertIsInstance(public_applied, SparkDataFrame)
+            self.assertIn("machine_age_bin", public_applied.columns)
+            public_optimized = public_glm.optimize(
+                train,
+                validation,
+                "machine_age",
+                trials=1,
+                n_prebins=4,
+                min_bin_size=1.0,
+            )
+            json.dumps(public_optimized.spec)
+
             optimized = optimize_factor(
                 train,
                 validation,
@@ -126,6 +167,50 @@ class SparkBackendTests(unittest.TestCase):
             result = workflow.fit(df, ["machine_age", "site_region"])
             self.assertEqual(result.selected_factors, ["machine_age_bin", "site_region_group"])
             self.assertGreater(result.validation_report["summary"].count(), 0)
+
+            public_train, public_validation, public_holdout = public_split(df, seed=42)
+            manual_rate_glm = PublicRateGLM(
+                target_col="events",
+                exposure_col="hours",
+                family="poisson",
+                prediction_col="predicted_events",
+            )
+            rate_model = manual_rate_glm.fit(public_train, factors=["machine_age", "site_region"])
+            self.assertIsInstance(rate_model, FittedSparkGLM)
+            rate_scored = manual_rate_glm.predict(public_validation, rate_model)
+            self.assertIsInstance(rate_scored, SparkDataFrame)
+            self.assertIn("predicted_events", rate_scored.columns)
+
+            weighted_train = public_train.withColumn("row_weight", F.lit(1.0))
+            missing_weight_glm = PublicRateGLM(
+                candidate_factors=["machine_age"],
+                target_col="events",
+                exposure_col="hours",
+                weight_col="row_weight",
+                family="poisson",
+            )
+            with self.assertRaisesRegex(KeyError, "row_weight"):
+                missing_weight_glm.fit(weighted_train, validation_df=public_validation)
+
+            auto_glm = PublicRateGLM(
+                candidate_factors=["machine_age", "site_region", "equipment_type"],
+                target_col="events",
+                exposure_col="hours",
+                family="poisson",
+                prediction_col="predicted_events",
+                top_n=2,
+            )
+            fitted = auto_glm.fit(public_train, validation_df=public_validation)
+            self.assertIs(fitted, auto_glm)
+            self.assertIsInstance(auto_glm.model_, FittedSparkGLM)
+            self.assertIsInstance(auto_glm.identified_factors_, SparkDataFrame)
+            self.assertGreater(auto_glm.identified_factors_.count(), 0)
+            self.assertIn("selected", auto_glm.identified_factors_.columns)
+            self.assertLessEqual(len(auto_glm.selected_factors_), 2)
+            scored_holdout = auto_glm.predict(public_holdout)
+            self.assertIsInstance(scored_holdout, SparkDataFrame)
+            self.assertIn("predicted_events", scored_holdout.columns)
+            self.assertGreaterEqual(scored_holdout.count(), 0)
         finally:
             spark.stop()
 

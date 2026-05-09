@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "glm-factor-optimizer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Domain-free GLM factor binning, grouping, and model design tools."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,6 +34,7 @@ dependencies = [
 Homepage = "https://github.com/csabar/glm-factor-optimizer"
 Repository = "https://github.com/csabar/glm-factor-optimizer"
 Documentation = "https://github.com/csabar/glm-factor-optimizer/blob/main/docs/index.md"
+Changelog = "https://github.com/csabar/glm-factor-optimizer/blob/main/CHANGELOG.md"
 Issues = "https://github.com/csabar/glm-factor-optimizer/issues"
 
 [project.optional-dependencies]

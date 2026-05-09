@@ -104,7 +104,9 @@ from glm_factor_optimizer import GLM, RateGLM
 - `family="gamma"`
 - `family="gaussian"`
 
-`RateGLM` is a convenience Poisson model with required exposure.
+`RateGLM` is a convenience wrapper for Poisson-style count/exposure models and
+simple candidate-factor screening. Exposure is optional; when supplied, it is
+used as a log offset.
 
 Core methods:
 
@@ -176,4 +178,35 @@ The Spark backend is optional and imports PySpark lazily. Install with:
 
 ```bash
 pip install "glm-factor-optimizer[spark]"
+```
+
+Top-level `GLM` and `RateGLM` dispatch on the input dataframe. With Spark
+dataframes, manual fitting uses Spark ML generalized linear regression:
+
+```python
+from glm_factor_optimizer import RateGLM
+
+glm = RateGLM(target_col="events", exposure_col="hours")
+model = glm.fit(train_sdf, factors=["event_type", "region"])
+scored = glm.predict(valid_sdf, model)
+```
+
+For Spark-native factor screening, keep the data in Spark:
+
+```python
+from glm_factor_optimizer import RateGLM, split
+
+train, valid, holdout = split(spark.table("catalog.schema.modeling_table"))
+
+glm = RateGLM(
+    candidate_factors=["event_type", "region", "service_channel"],
+    target_col="events",
+    exposure_col="hours",
+    family="poisson",
+    prediction_col="predicted_events",
+)
+glm.fit(train, validation_df=valid)
+
+display(glm.identified_factors_)
+scored_holdout = glm.predict(holdout)
 ```

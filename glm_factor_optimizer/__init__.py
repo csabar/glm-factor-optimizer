@@ -1,6 +1,7 @@
 """Simple GLM factor-binning and modeling tools."""
 
 from importlib.metadata import PackageNotFoundError, version as _package_version
+from typing import TYPE_CHECKING
 
 from .aggregation import aggregate_rate_table, aggregate_table
 from .bins import apply_spec, category_target_order, make_numeric_bins
@@ -35,12 +36,24 @@ from .study import GLMStudy
 from .validation import by_factor_report, train_validation_comparison, validation_report
 from .workflow import GLMWorkflow, WorkflowResult, run_workflow
 
+if TYPE_CHECKING:
+    from .spark.auto import SparkRateGLM as SparkRateGLM
+
 optimize_bins = optimize_factor
+
+
+def __getattr__(name: str):
+    if name == "SparkRateGLM":
+        from .spark.auto import SparkRateGLM as _SparkRateGLM
+
+        globals()[name] = _SparkRateGLM
+        return _SparkRateGLM
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 try:
     __version__ = _package_version("glm-factor-optimizer")
 except PackageNotFoundError:  # pragma: no cover - source tree without installed metadata.
-    __version__ = "0.1.0"
+    __version__ = "0.1.1"
 
 __all__ = [
     "FittedRateGLM",
@@ -52,6 +65,7 @@ __all__ = [
     "OptimizationResult",
     "RateGLM",
     "RunLogger",
+    "SparkRateGLM",
     "aggregate_rate_table",
     "aggregate_table",
     "apply_spec",

@@ -1,6 +1,7 @@
 """Optional PySpark backend for Spark environments."""
 
 from .aggregation import aggregate_rate_table, aggregate_table
+from .auto import RateGLM, SparkRateGLM
 from .bins import apply_spec, category_target_order, make_categorical_groups, make_numeric_bins
 from .core import SparkGLM
 from .metrics import calibration, model_deviance, summary
@@ -14,7 +15,9 @@ __all__ = [
     "SparkGLM",
     "SparkGLMWorkflow",
     "SparkOptimizationResult",
+    "SparkRateGLM",
     "SparkWorkflowResult",
+    "RateGLM",
     "aggregate_rate_table",
     "aggregate_table",
     "apply_spec",

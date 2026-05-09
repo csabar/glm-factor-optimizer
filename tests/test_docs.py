@@ -122,6 +122,24 @@ class DocumentationTests(unittest.TestCase):
                         violations.append(f"{file.relative_to(ROOT)} contains {term!r}")
         self.assertEqual([], violations)
 
+    def test_public_examples_do_not_convert_spark_inputs_to_pandas(self) -> None:
+        # Public examples should not suggest converting large Spark modeling
+        # tables. Internal bounded aggregate metadata may still use pandas.
+        public_paths = [ROOT / "README.md", ROOT / "docs", ROOT / "examples"]
+        banned = [
+            ".topandas(",
+            ".to_pandas(",
+        ]
+        violations: list[str] = []
+        for path in public_paths:
+            files = [path] if path.is_file() else list(path.rglob("*.md")) + list(path.rglob("*.py"))
+            for file in files:
+                text = file.read_text(encoding="utf-8").lower()
+                for term in banned:
+                    if term in text:
+                        violations.append(f"{file.relative_to(ROOT)} contains {term!r}")
+        self.assertEqual([], violations)
+
 
 if __name__ == "__main__":
     unittest.main()
