@@ -227,7 +227,6 @@ class GLM:
         factor: str,
         *,
         kind: str = "numeric",
-        fixed: list[str] | None = None,
         fixed_factors: list[str] | None = None,
         trials: int = 50,
         max_bins: int = 8,
@@ -250,10 +249,8 @@ class GLM:
             Raw factor column to optimize.
         kind:
             Factor kind, either ``"numeric"`` or ``"categorical"``.
-        fixed:
-            Already transformed model columns to keep in the GLM.
         fixed_factors:
-            Alias for ``fixed`` kept for readability in manual calls.
+            Already transformed model columns to keep in the GLM.
         trials:
             Number of Optuna trials.
         max_bins:
@@ -277,12 +274,11 @@ class GLM:
             Best spec, objective value, and trial history.
         """
 
+        fixed_factors_list = list(fixed_factors) if fixed_factors is not None else []
+
         if is_spark_dataframe(train_df):
             from .spark.optimize import optimize_factor as spark_optimize_factor
 
-            if fixed is not None and fixed_factors is not None and list(fixed) != list(fixed_factors):
-                raise ValueError("Use either fixed or fixed_factors, not conflicting values for both.")
-            resolved_fixed = list(fixed if fixed is not None else fixed_factors or [])
             return spark_optimize_factor(
                 train_df,
                 validation_df,
@@ -291,7 +287,7 @@ class GLM:
                 family=self.family,
                 factor=factor,
                 kind=kind,
-                fixed=resolved_fixed,
+                fixed_factors=fixed_factors_list,
                 weight=self.weight,
                 prediction=self.prediction,
                 trials=trials,
@@ -312,8 +308,7 @@ class GLM:
             family=self.family,
             factor=factor,
             kind=kind,
-            fixed=fixed,
-            fixed_factors=fixed_factors,
+            fixed_factors=fixed_factors_list,
             weight=self.weight,
             prediction=self.prediction,
             trials=trials,

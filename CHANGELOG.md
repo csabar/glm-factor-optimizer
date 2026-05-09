@@ -29,6 +29,11 @@ No unreleased changes yet.
 - `RateGLM` now accepts `target_col`, `exposure_col`, `weight_col`, and
   `prediction_col` aliases for notebook workflows that commonly use column
   suffix naming.
+- Optimizer APIs now use `fixed_factors` consistently for fixed transformed
+  factors across pandas and Spark; the shorter `fixed` spelling was removed
+  before public use.
+- The pandas optimizer now uses `min_bin_size` as the only bin-size threshold
+  argument, matching the Spark optimizer and higher-level facades.
 - Spark helper internals may use pandas only for bounded aggregate metadata,
   such as bin summaries or category-order tables; large modeling tables stay in
   Spark.

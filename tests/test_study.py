@@ -98,8 +98,36 @@ class StudyTests(unittest.TestCase):
         segment.optimize(trials=4, min_bin_size=5.0)
         segment.accept()
 
-        refined = study.refine_factor("score", trials=4, n_prebins=4)
-        self.assertEqual(refined.optimization.fixed, [study.specs["segment"]["output"]])
+        expected_fixed_factors = [study.specs["segment"]["output"]]
+        seen_trial_factors: list[tuple[list[str], list[str], str]] = []
+
+        def capture_trial_factors(context: dict) -> float:
+            seen_trial_factors.append(
+                (
+                    list(context["fixed_factors"]),
+                    list(context["model"].factors),
+                    str(context["spec"]["output"]),
+                )
+            )
+            return 0.0
+
+        refined = study.refine_factor(
+            "score",
+            trials=4,
+            n_prebins=4,
+            penalties={"capture_trial_factors": capture_trial_factors},
+        )
+        self.assertEqual(refined.optimization.fixed_factors, expected_fixed_factors)
+        self.assertIn("fixed_factors", refined.optimization.trials.columns)
+        self.assertTrue(
+            refined.optimization.trials["fixed_factors"]
+            .map(lambda value: value == expected_fixed_factors)
+            .all()
+        )
+        self.assertGreater(len(seen_trial_factors), 0)
+        for fixed_factors, model_factors, candidate_output in seen_trial_factors:
+            self.assertEqual(fixed_factors, expected_fixed_factors)
+            self.assertEqual(model_factors, [*expected_fixed_factors, candidate_output])
         json.dumps(refined.spec)
         refined.accept(comment="accepted refined score")
 

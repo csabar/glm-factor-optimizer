@@ -40,7 +40,7 @@ class SparkOptimizationResult:
         Validation deviance for the best trial before added penalties.
     trials:
         Trial history table collected on the driver.
-    fixed:
+    fixed_factors:
         Fixed transformed columns included in the GLM during optimization.
     penalty_breakdown:
         Penalty components recorded for the best trial.
@@ -53,7 +53,7 @@ class SparkOptimizationResult:
     score: float
     validation_deviance: float
     trials: pd.DataFrame
-    fixed: list[str]
+    fixed_factors: list[str]
     penalty_breakdown: dict[str, float]
 
 
@@ -66,7 +66,7 @@ def optimize_factor(
     family: str = "poisson",
     exposure: str | None = None,
     kind: str = "numeric",
-    fixed: list[str] | None = None,
+    fixed_factors: list[str] | None = None,
     weight: str | None = None,
     prediction: str = "prediction",
     trials: int = 50,
@@ -98,7 +98,7 @@ def optimize_factor(
         Optional exposure column used as a log offset.
     kind:
         Factor kind, either ``"numeric"`` or ``"categorical"``.
-    fixed:
+    fixed_factors:
         Already transformed model columns to keep in the GLM.
     weight:
         Optional row-weight column.
@@ -143,7 +143,7 @@ def optimize_factor(
     kind = kind.lower().strip()
     if kind not in {"numeric", "categorical"}:
         raise ValueError("kind must be 'numeric' or 'categorical'.")
-    fixed = list(fixed or [])
+    fixed_factors_list = list(fixed_factors) if fixed_factors is not None else []
     extra_penalties = _named_penalties(penalties)
 
     cached_inputs: list[Any] = []
@@ -177,7 +177,7 @@ def optimize_factor(
             model = fit_glm(
                 train_transformed,
                 target=target,
-                factors=[*fixed, str(spec["output"])],
+                factors=[*fixed_factors_list, str(spec["output"])],
                 family=family,
                 exposure=exposure,
                 weight=weight,
@@ -217,7 +217,7 @@ def optimize_factor(
                 "family": family,
                 "factor": factor,
                 "kind": kind,
-                "fixed": fixed,
+                "fixed_factors": fixed_factors_list,
                 "train_deviance": float(train_deviance),
                 "validation_deviance": float(validation_deviance),
                 "bin_count": bin_count,
@@ -230,6 +230,7 @@ def optimize_factor(
             trial.set_user_attr("bins", bin_count)
             trial.set_user_attr("min_bin_size", float(table["bin_size"].min()))
             trial.set_user_attr("small_bins", small_bins)
+            trial.set_user_attr("fixed_factors", list(fixed_factors_list))
             trial.set_user_attr("complexity_penalty", float(complexity))
             trial.set_user_attr("small_bin_penalty", float(size_penalty))
             trial.set_user_attr("custom_penalty", float(custom_penalty))
@@ -261,7 +262,7 @@ def optimize_factor(
             score=float(best.value),
             validation_deviance=float(best.user_attrs.get("validation_deviance", np.nan)),
             trials=_trial_table(study),
-            fixed=fixed,
+            fixed_factors=fixed_factors_list,
             penalty_breakdown={
                 "complexity": float(best.user_attrs.get("complexity_penalty", 0.0)),
                 "small_bin": float(best.user_attrs.get("small_bin_penalty", 0.0)),

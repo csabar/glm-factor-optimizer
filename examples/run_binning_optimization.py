@@ -42,7 +42,7 @@ def main() -> None:
         train_df,
         validation_df,
         "score",
-        fixed=["segment"],
+        fixed_factors=["segment"],
         trials=25,
         n_prebins=8,
         min_bin_size=50.0,

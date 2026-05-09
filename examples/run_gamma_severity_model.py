@@ -40,7 +40,7 @@ def main() -> None:
         train_df,
         validation_df,
         "age",
-        fixed=["equipment_type"],
+        fixed_factors=["equipment_type"],
         trials=20,
         n_prebins=6,
         min_bin_size=50.0,

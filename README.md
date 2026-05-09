@@ -94,7 +94,7 @@ result = glm.optimize(
     train,
     valid,
     "score",
-    fixed=["segment"],
+    fixed_factors=["segment"],
     trials=50,
 )
 
@@ -257,7 +257,7 @@ result = glm.optimize(
     train_sdf,
     valid_sdf,
     "score",
-    fixed=["segment"],
+    fixed_factors=["segment"],
     trials=30,
     cache_input=True,
     cache_trials=False,

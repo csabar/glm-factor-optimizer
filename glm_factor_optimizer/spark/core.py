@@ -162,7 +162,7 @@ class SparkGLM:
         factor: str,
         *,
         kind: str = "numeric",
-        fixed: list[str] | None = None,
+        fixed_factors: list[str] | None = None,
         trials: int = 50,
         max_bins: int = 8,
         n_prebins: int = 10,
@@ -186,7 +186,7 @@ class SparkGLM:
             Raw factor column to optimize.
         kind:
             Factor kind, either ``"numeric"`` or ``"categorical"``.
-        fixed:
+        fixed_factors:
             Already transformed model columns to keep in the GLM.
         trials:
             Number of Optuna trials.
@@ -224,7 +224,7 @@ class SparkGLM:
             family=self.family,
             exposure=self.exposure,
             kind=kind,
-            fixed=fixed,
+            fixed_factors=fixed_factors,
             weight=self.weight,
             prediction=self.prediction,
             trials=trials,

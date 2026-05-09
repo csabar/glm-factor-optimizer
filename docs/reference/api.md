@@ -135,7 +135,7 @@ Important arguments:
 - `factor`
 - `kind`: `"numeric"` or `"categorical"`
 - `family`
-- `fixed` or `fixed_factors`
+- `fixed_factors`
 - `weight`
 - `trials`
 - `max_bins`

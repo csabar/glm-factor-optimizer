@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import unittest
 
 import numpy as np
 import pandas as pd
 
-from glm_factor_optimizer import GLM, RateGLM, small_count_penalty, split
+from glm_factor_optimizer import GLM, RateGLM, optimize_factor, small_count_penalty, split
 
 try:
     import optuna
@@ -36,7 +37,7 @@ class OptimizeTests(unittest.TestCase):
             train_df,
             validation_df,
             "score",
-            fixed=["segment"],
+            fixed_factors=["segment"],
             trials=5,
             n_prebins=4,
             min_bin_size=5.0,
@@ -44,23 +45,16 @@ class OptimizeTests(unittest.TestCase):
         )
         json.dumps(result.spec)
         self.assertEqual(result.kind, "numeric")
-        self.assertEqual(result.fixed, ["segment"])
+        self.assertEqual(result.fixed_factors, ["segment"])
 
-    def test_fixed_factors_alias(self) -> None:
-        train_df, validation_df, _ = split(make_data(seed=35), seed=35)
-        glm = RateGLM(target="events", exposure="exposure")
-        result = glm.optimize(
-            train_df,
-            validation_df,
-            "score",
-            fixed_factors=["segment"],
-            trials=4,
-            n_prebins=4,
-            min_bin_size=5.0,
-            seed=35,
-        )
+    def test_optimize_apis_use_fixed_factors_consistently(self) -> None:
+        from glm_factor_optimizer.spark.core import SparkGLM
+        from glm_factor_optimizer.spark.optimize import optimize_factor as spark_optimize_factor
 
-        self.assertEqual(result.fixed, ["segment"])
+        for function in [GLM.optimize, optimize_factor, SparkGLM.optimize, spark_optimize_factor]:
+            parameters = inspect.signature(function).parameters
+            self.assertIn("fixed_factors", parameters)
+            self.assertNotIn("fixed", parameters)
 
     def test_categorical_optimization(self) -> None:
         train_df, validation_df, _ = split(make_data(seed=32), seed=32)
@@ -116,7 +110,7 @@ class OptimizeTests(unittest.TestCase):
             train_df,
             validation_df,
             "score",
-            fixed=["segment"],
+            fixed_factors=["segment"],
             trials=5,
             n_prebins=4,
             min_bin_size=5.0,

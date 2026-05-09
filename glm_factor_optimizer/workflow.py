@@ -226,7 +226,7 @@ class GLMWorkflow:
                 validation,
                 factor,
                 kind=self.factor_kinds.get(factor) or _infer_kind(train[factor]),
-                fixed=selected,
+                fixed_factors=selected,
                 trials=self.trials,
                 max_bins=self.max_bins,
                 n_prebins=self.n_prebins,

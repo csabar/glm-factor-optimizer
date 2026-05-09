@@ -44,7 +44,7 @@ class OptimizationResult:
         Validation deviance for the best trial before added penalties.
     trials:
         Trial history table.
-    fixed:
+    fixed_factors:
         Fixed transformed columns included in the GLM during optimization.
     penalty_breakdown:
         Penalty components recorded for the best trial.
@@ -57,7 +57,7 @@ class OptimizationResult:
     score: float
     validation_deviance: float
     trials: pd.DataFrame
-    fixed: list[str]
+    fixed_factors: list[str]
     penalty_breakdown: dict[str, float]
 
 
@@ -193,15 +193,13 @@ def optimize_factor(
     factor: str,
     kind: str = "numeric",
     family: str = "poisson",
-    fixed: list[str] | None = None,
     fixed_factors: list[str] | None = None,
     weight: str | None = None,
     prediction: str = "predicted_count",
     trials: int = 50,
     max_bins: int = 8,
     n_prebins: int = 10,
-    min_exposure: float = 100.0,
-    min_bin_size: float | None = None,
+    min_bin_size: float = 100.0,
     bin_penalty: float = 0.001,
     small_bin_penalty: float = 0.01,
     penalties: PenaltyInput | None = None,
@@ -226,10 +224,8 @@ def optimize_factor(
     family:
         GLM family name, such as ``"poisson"``, ``"gamma"``, or
         ``"gaussian"``.
-    fixed:
-        Already transformed model columns to keep in the GLM.
     fixed_factors:
-        Alias for ``fixed`` for readability in manual workflows.
+        Already transformed model columns to keep in the GLM.
     weight:
         Optional row-weight column.
     prediction:
@@ -241,10 +237,8 @@ def optimize_factor(
         penalty applies.
     n_prebins:
         Number of numeric pre-bins used to define candidate cutpoints.
-    min_exposure:
-        Backward-compatible name for the default minimum bin size threshold.
     min_bin_size:
-        Minimum bin size threshold. When supplied, overrides ``min_exposure``.
+        Minimum bin size threshold.
     bin_penalty:
         Penalty multiplier for each bin and excess bin.
     small_bin_penalty:
@@ -271,10 +265,8 @@ def optimize_factor(
     kind = kind.lower().strip()
     if kind not in {"numeric", "categorical"}:
         raise ValueError("kind must be 'numeric' or 'categorical'.")
-    if fixed is not None and fixed_factors is not None and list(fixed) != list(fixed_factors):
-        raise ValueError("Use either fixed or fixed_factors, not conflicting values for both.")
-    fixed = list(fixed if fixed is not None else fixed_factors or [])
-    required_columns = [target, factor, *fixed] + ([exposure] if exposure is not None else [])
+    fixed_factors_list = list(fixed_factors) if fixed_factors is not None else []
+    required_columns = [target, factor, *fixed_factors_list] + ([exposure] if exposure is not None else [])
     for column in required_columns:
         if column not in train_df.columns or column not in validation_df.columns:
             raise KeyError(f"Column {column!r} must exist in train and validation data.")
@@ -299,7 +291,7 @@ def optimize_factor(
                 target=target,
                 exposure=exposure,
                 family=family,
-                factors=[*fixed, str(spec["output"])],
+                factors=[*fixed_factors_list, str(spec["output"])],
                 weight=weight,
                 prediction=prediction,
             )
@@ -327,8 +319,7 @@ def optimize_factor(
                 labels=list(spec["labels"]),
             )
             bin_count = int(len(table))
-            size_threshold = min_bin_size if min_bin_size is not None else min_exposure
-            small_bins = int((table["bin_size"] < size_threshold).sum())
+            small_bins = int((table["bin_size"] < min_bin_size).sum())
             complexity = bin_count * bin_penalty + max(bin_count - max_bins, 0) * bin_penalty
             size_penalty = small_bins * small_bin_penalty
             context = {
@@ -344,7 +335,7 @@ def optimize_factor(
                 "family": family,
                 "factor": factor,
                 "kind": kind,
-                "fixed": fixed,
+                "fixed_factors": fixed_factors_list,
                 "train_deviance": float(train_deviance),
                 "validation_deviance": float(validation_deviance),
                 "bin_count": bin_count,
@@ -358,6 +349,7 @@ def optimize_factor(
             trial.set_user_attr("bins", bin_count)
             trial.set_user_attr("min_bin_size", float(table["bin_size"].min()))
             trial.set_user_attr("small_bins", small_bins)
+            trial.set_user_attr("fixed_factors", list(fixed_factors_list))
             trial.set_user_attr("complexity_penalty", float(complexity))
             trial.set_user_attr("small_bin_penalty", float(size_penalty))
             trial.set_user_attr("custom_penalty", float(custom_penalty))
@@ -382,7 +374,7 @@ def optimize_factor(
         score=float(best.value),
         validation_deviance=float(best.user_attrs.get("validation_deviance", np.nan)),
         trials=_trial_table(study),
-        fixed=fixed,
+        fixed_factors=fixed_factors_list,
         penalty_breakdown={
             "complexity": float(best.user_attrs.get("complexity_penalty", 0.0)),
             "small_bin": float(best.user_attrs.get("small_bin_penalty", 0.0)),

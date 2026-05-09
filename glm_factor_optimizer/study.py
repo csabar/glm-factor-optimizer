@@ -368,7 +368,7 @@ class GLMStudy:
             factor=factor,
             kind=kind,
             family=self.family,
-            fixed=self._fixed_outputs(exclude_factor=factor),
+            fixed_factors=self._fixed_factor_outputs(exclude_factor=factor),
             weight=self.weight,
             prediction=self.prediction,
             trials=trials,
@@ -412,7 +412,7 @@ class GLMStudy:
         train, validation, _ = self._transformed_frames(exclude_factor=factor, include_holdout=False)
         train = apply_spec(train, spec)
         validation = apply_spec(validation, spec)
-        candidate_factors = [*self._fixed_outputs(exclude_factor=factor), str(spec["output"])]
+        candidate_factors = [*self._fixed_factor_outputs(exclude_factor=factor), str(spec["output"])]
         model = self.glm.fit(train, candidate_factors)
         train_scored = self.glm.predict(train, model)
         validation_scored = self.glm.predict(validation, model)
@@ -966,7 +966,7 @@ class GLMStudy:
 
         return train, validation, holdout
 
-    def _fixed_outputs(self, exclude_factor: str | None = None) -> list[str]:
+    def _fixed_factor_outputs(self, exclude_factor: str | None = None) -> list[str]:
         excluded_output = str(self.specs[exclude_factor]["output"]) if exclude_factor in self.specs else None
         outputs = [
             str(self.specs[factor]["output"])

@@ -53,7 +53,7 @@ class ApiTests(unittest.TestCase):
             train_df,
             validation_df,
             "score",
-            fixed=["segment"],
+            fixed_factors=["segment"],
             trials=5,
             n_prebins=4,
             min_bin_size=5.0,
@@ -63,7 +63,7 @@ class ApiTests(unittest.TestCase):
         json.dumps(result.spec)
         transformed = apply_spec(validation_df, result.spec)
         self.assertIn(result.output, transformed.columns)
-        self.assertEqual(result.fixed, ["segment"])
+        self.assertEqual(result.fixed_factors, ["segment"])
 
     def test_optimize_bins_alias_is_public(self) -> None:
         train_df, validation_df, _ = split(make_data(n_rows=320, seed=5), seed=5)
