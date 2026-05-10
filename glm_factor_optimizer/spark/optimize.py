@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -18,6 +19,8 @@ JsonDict = dict[str, Any]
 PenaltyContext = dict[str, Any]
 PenaltyFunction = Callable[[PenaltyContext], float]
 PenaltyInput = PenaltyFunction | Sequence[PenaltyFunction] | Mapping[str, PenaltyFunction]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -296,7 +299,7 @@ def _cache_if_supported(df: Any) -> tuple[Any, bool]:
         try:
             cached.unpersist()
         except Exception:
-            pass
+            _LOGGER.debug("Unable to unpersist failed Spark cache.", exc_info=True)
         if _is_unsupported_cache_error(exc):
             return df, False
         raise

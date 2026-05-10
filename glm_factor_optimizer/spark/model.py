@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
 
 from ._deps import require_pyspark
+
+_LOGGER = logging.getLogger(__name__)
 
 _NUMERIC_TYPES = {
     "byte",
@@ -219,7 +222,7 @@ def _release_ml_object(obj: Any) -> None:
 
         del_remote_cache(ref_id)
     except Exception:
-        pass
+        _LOGGER.debug("Unable to release Spark ML cache entry %s.", ref_id, exc_info=True)
 
 
 def _prepare_frame(
