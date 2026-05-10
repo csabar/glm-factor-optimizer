@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from ._deps import require_pyspark
@@ -142,14 +143,13 @@ def calibration(
 
     spark = require_pyspark()
     F = spark.functions
-    W = spark.Window
     rank_value = (
         F.col(prediction).cast("double") / F.greatest(F.col(exposure).cast("double"), F.lit(1e-9))
         if exposure is not None
         else F.col(prediction).cast("double")
     )
     work = df.withColumn("__rank_value", rank_value)
-    work = work.withColumn("bin", F.ntile(bins).over(W.orderBy("__rank_value")))
+    work = _with_approx_quantile_bin(work, "__rank_value", bins)
     aggs = [
         F.sum(F.col(target).cast("double")).alias("actual"),
         F.sum(F.col(prediction).cast("double")).alias("predicted"),
@@ -166,3 +166,28 @@ def calibration(
         table = table.withColumn("actual_mean", F.col("actual") / F.greatest(F.col("rows"), F.lit(1)))
         table = table.withColumn("predicted_mean", F.col("predicted") / F.greatest(F.col("rows"), F.lit(1)))
     return table
+
+
+def _with_approx_quantile_bin(df: Any, column: str, bins: int) -> Any:
+    spark = require_pyspark()
+    F = spark.functions
+    bins = max(int(bins), 1)
+    if bins == 1:
+        return df.withColumn("bin", F.lit(1))
+
+    probabilities = [index / bins for index in range(bins + 1)]
+    edges = [
+        float(value)
+        for value in df.approxQuantile(column, probabilities, 0.01)
+        if value is not None and math.isfinite(float(value))
+    ]
+    if len(edges) < 2:
+        return df.withColumn("bin", F.lit(1))
+
+    minimum = min(edges)
+    maximum = max(edges)
+    thresholds = sorted({edge for edge in edges[1:-1] if minimum < edge < maximum})
+    bin_expr = F.when(F.col(column).isNull(), F.lit(1))
+    for index, threshold in enumerate(thresholds, start=1):
+        bin_expr = bin_expr.when(F.col(column) <= F.lit(threshold), F.lit(index))
+    return df.withColumn("bin", bin_expr.otherwise(F.lit(len(thresholds) + 1)))

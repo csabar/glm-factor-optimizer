@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Spark study reports, rankings, comparisons, and saved CSV artifacts are
   bounded aggregate metadata; raw and scored modeling tables remain Spark
   DataFrames.
+- Spark calibration reports now use distributed approximate quantile cut points
+  instead of an unpartitioned global window.
 
 ### Fixed
 

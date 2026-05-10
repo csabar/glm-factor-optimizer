@@ -38,7 +38,9 @@ Produced by:
 - `calibration(...)`
 - `study.validation_report()["calibration"]`
 
-Rows are grouped by prediction-level quantiles.
+Rows are grouped by approximate prediction-level quantiles. Spark reports use
+distributed approximate quantile cut points so calibration does not require a
+single unpartitioned window sort.
 
 Typical columns:
 
