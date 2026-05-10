@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 from ._deps import require_pyspark
-from .metrics import calibration, model_deviance, summary
+from .metrics import calibration, model_deviance, summary_frame
 
 
 def scored_summary(
@@ -23,17 +23,15 @@ def scored_summary(
 ) -> pd.DataFrame:
     """Return a one-row Spark validation summary as a pandas table."""
 
-    table = summary(
+    table = summary_frame(
         df,
         target=target,
         prediction=prediction,
         exposure=exposure,
         weight=weight,
         family=family,
+        include_errors=True,
     ).toPandas()
-    metrics = scored_metrics(df, target=target, prediction=prediction, family=family, weight=weight)
-    table["mae"] = metrics["mae"]
-    table["rmse"] = metrics["rmse"]
     if label is not None:
         table.insert(0, "sample", label)
     return table
@@ -157,7 +155,7 @@ def validation_report(
             weight=weight,
         ),
         "calibration": calibration_table,
-        "lift": _lift_from_calibration(validation_df, calibration_table, target=target, exposure=exposure),
+        "lift": _lift_from_calibration(calibration_table, exposure=exposure),
     }
     for factor in factors or []:
         report[f"by_{factor}"] = by_factor_report(
@@ -219,43 +217,31 @@ def scored_metrics(
 ) -> dict[str, float]:
     """Return scalar deviance, MAE, and RMSE for scored Spark data."""
 
-    spark = require_pyspark()
-    F = spark.functions
-    error = F.col(target).cast("double") - F.col(prediction).cast("double")
-    if weight is None:
-        row = df.select(
-            F.avg(F.abs(error)).alias("mae"),
-            F.sqrt(F.avg(error * error)).alias("rmse"),
-        ).first()
-    else:
-        w = F.col(weight).cast("double")
-        row = df.select(
-            (F.sum(F.abs(error) * w) / F.sum(w)).alias("mae"),
-            F.sqrt(F.sum(error * error * w) / F.sum(w)).alias("rmse"),
-        ).first()
+    row = summary_frame(
+        df,
+        target=target,
+        prediction=prediction,
+        family=family,
+        weight=weight,
+        include_errors=True,
+    ).first()
     return {
-        "deviance": deviance_score(df, target=target, prediction=prediction, family=family, weight=weight),
+        "deviance": float(row["deviance"]),
         "mae": float(row["mae"]),
         "rmse": float(row["rmse"]),
     }
 
 
 def _lift_from_calibration(
-    df: Any,
     calibration_table: pd.DataFrame,
     *,
-    target: str,
     exposure: str | None,
 ) -> pd.DataFrame:
-    spark = require_pyspark()
-    F = spark.functions
     table = calibration_table.copy()
     if exposure is not None:
-        row = df.select(
-            (F.sum(F.col(target).cast("double")) / F.sum(F.col(exposure).cast("double"))).alias("overall")
-        ).first()
-        table["lift"] = table["actual_rate"] / max(float(row["overall"]), 1e-9)
+        overall = float(table["actual"].sum()) / max(float(table["exposure"].sum()), 1e-9)
+        table["lift"] = table["actual_rate"] / max(overall, 1e-9)
         return table
-    row = df.select(F.avg(F.col(target).cast("double")).alias("overall")).first()
-    table["lift"] = table["actual_mean"] / max(float(row["overall"]), 1e-9)
+    overall = float(table["actual"].sum()) / max(float(table["rows"].sum()), 1e-9)
+    table["lift"] = table["actual_mean"] / max(overall, 1e-9)
     return table

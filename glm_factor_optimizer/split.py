@@ -22,6 +22,7 @@ def split(
     holdout_fraction: float | None = None,
     seed: int | None = 42,
     time: str | None = None,
+    time_split: str = "exact",
 ) -> tuple[Any, Any, Any]:
     """Return train, validation, and holdout dataframes.
 
@@ -46,6 +47,8 @@ def split(
     time:
         Optional time-like column used to split ordered rows instead of random
         rows.
+    time_split:
+        Time split strategy. Pandas supports only ``"exact"``.
 
     Returns
     -------
@@ -56,6 +59,7 @@ def split(
     train_value = _resolve_fraction("train", train, train_fraction, 0.6)
     validation_value = _resolve_fraction("validation", validation, validation_fraction, 0.2)
     holdout_value = _resolve_fraction("holdout", holdout, holdout_fraction, 0.2)
+    time_split = _resolve_time_split(time_split)
 
     if is_spark_dataframe(df):
         from .spark.split import split as spark_split
@@ -67,7 +71,11 @@ def split(
             holdout=holdout_value,
             seed=seed,
             time=time,
+            time_split=time_split,
         )
+
+    if time_split != "exact":
+        raise ValueError("Pandas split supports only time_split='exact'.")
 
     total = train_value + validation_value + holdout_value
     if abs(total - 1.0) > 1e-9:
@@ -102,3 +110,10 @@ def _resolve_fraction(
     if value is not _UNSET:
         return float(value)
     return default
+
+
+def _resolve_time_split(value: str) -> str:
+    normalized = str(value).lower().strip()
+    if normalized not in {"exact", "approximate"}:
+        raise ValueError("time_split must be 'exact' or 'approximate'.")
+    return normalized

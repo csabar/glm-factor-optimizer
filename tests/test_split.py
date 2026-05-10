@@ -36,6 +36,16 @@ class SplitTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "either train or train_fraction"):
             split(frame, train=0.6, train_fraction=0.5)
 
+    def test_pandas_split_rejects_approximate_time_split(self) -> None:
+        frame = pd.DataFrame({"value": range(10), "time": range(10)})
+        with self.assertRaisesRegex(ValueError, "Pandas split supports only time_split='exact'"):
+            split(frame, time="time", time_split="approximate")
+
+    def test_split_rejects_invalid_time_split(self) -> None:
+        frame = pd.DataFrame({"value": range(10), "time": range(10)})
+        with self.assertRaisesRegex(ValueError, "time_split must be 'exact' or 'approximate'"):
+            split(frame, time="time", time_split="fast")
+
 
 if __name__ == "__main__":
     unittest.main()

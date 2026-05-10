@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,7 @@ class SparkGLMStudy:
         self.validation_reports: dict[str, pd.DataFrame] | None = None
         self.holdout_reports: dict[str, pd.DataFrame] | None = None
         self.finalized = False
+        self._revision = 0
 
     @property
     def selected_factors(self) -> list[str]:
@@ -103,6 +105,7 @@ class SparkGLMStudy:
         holdout_fraction: float = 0.2,
         seed: int | None = None,
         time: str | None = None,
+        time_split: str = "exact",
     ) -> tuple[Any, Any, Any]:
         """Create Spark train, validation, and holdout samples."""
 
@@ -113,8 +116,10 @@ class SparkGLMStudy:
             holdout_fraction=holdout_fraction,
             seed=seed if seed is not None else self.seed,
             time=time,
+            time_split=time_split,
         )
         self._invalidate_model(include_holdout=True)
+        self._bump_revision()
         self._record("split", comment=f"train={train_fraction}, validation={validation_fraction}, holdout={holdout_fraction}")
         return self.train, self.validation, self.holdout
 
@@ -175,7 +180,8 @@ class SparkGLMStudy:
         self.require_split()
         factor_name, accepted_spec, optimization = _factor_parts(factor, spec)
         existed = factor_name in self.specs
-        before_score = self._current_validation_deviance()
+        comparison_scores = self._comparison_scores_from_block(factor) if isinstance(factor, SparkFactorBlock) else None
+        before_score = comparison_scores[0] if comparison_scores is not None else self._current_validation_deviance()
         self.specs[factor_name] = dict(accepted_spec)
         if isinstance(factor, SparkFactorBlock):
             self.factor_kinds[factor_name] = factor.kind
@@ -183,8 +189,9 @@ class SparkGLMStudy:
             self.optimizations[factor_name] = optimization
         if factor_name not in self.accepted_raw_factors:
             self.accepted_raw_factors.append(factor_name)
-        after_score = self._current_validation_deviance()
+        after_score = comparison_scores[1] if comparison_scores is not None else self._current_validation_deviance()
         self._invalidate_model(include_holdout=True)
+        self._bump_revision()
         self._record(
             "refine" if existed else "accept",
             factor=factor_name,
@@ -483,6 +490,7 @@ class SparkGLMStudy:
         self.interaction_specs[str(spec["output"])] = spec
         after_score = self._current_validation_deviance()
         self._invalidate_model(include_holdout=True)
+        self._bump_revision()
         self._record(
             "accept_interaction",
             factor=str(spec["output"]),
@@ -610,6 +618,25 @@ class SparkGLMStudy:
         if train is None or validation is None:
             raise RuntimeError("Internal error: train and validation splits should exist after require_split().")
         return train, validation
+
+    def _comparison_scores_from_block(self, block: SparkFactorBlock) -> tuple[float, float] | None:
+        comparison = block.last_comparison
+        if comparison is None or len(comparison) != 1:
+            return None
+        if block.last_comparison_revision != self._revision:
+            return None
+        if block.last_comparison_spec_fingerprint != self._spec_fingerprint(block.spec):
+            return None
+        row = comparison.iloc[0]
+        return float(row["current_validation_deviance"]), float(row["candidate_validation_deviance"])
+
+    def _spec_fingerprint(self, spec: JsonDict | None) -> str | None:
+        if spec is None:
+            return None
+        return json.dumps(spec, sort_keys=True, default=str)
+
+    def _bump_revision(self) -> None:
+        self._revision += 1
 
     def _current_validation_deviance(self) -> float:
         self.require_split()

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from ._deps import require_pyspark
-from .bins import apply_spec, category_target_order, make_categorical_groups, make_numeric_bins
+from .bins import apply_spec, categorical_group_spec_from_order, category_target_order, make_numeric_bins
 from .metrics import model_deviance
 from .model import fit_glm
 
@@ -44,6 +44,9 @@ def rank_factors(
     if weight is not None:
         required.append(weight)
     _check_columns(train_df, validation_df, required)
+    train_metadata = _factor_metadata(train_df, factors, exposure, weight)
+    validation_metadata = _factor_metadata(validation_df, factors, exposure, weight)
+    effective_n = _effective_n(validation_df, weight)
 
     baseline = fit_glm(
         train_df,
@@ -123,9 +126,10 @@ def rank_factors(
                 labels=list(spec["labels"]),
             )
             improvement = float(baseline_validation_deviance - validation_deviance)
-            effective_n = _effective_n(validation_transformed, weight)
             degrees_of_freedom = max(int(len(bin_table) - 1), 1)
             likelihood_ratio_stat = max(improvement * effective_n, 0.0)
+            train_factor_metadata = train_metadata[factor]
+            validation_factor_metadata = validation_metadata[factor]
             rows.append(
                 {
                     "factor": factor,
@@ -140,10 +144,10 @@ def rank_factors(
                     "likelihood_ratio_stat": float(likelihood_ratio_stat),
                     "degrees_of_freedom": degrees_of_freedom,
                     "p_value": _chi_square_p_value(likelihood_ratio_stat, degrees_of_freedom),
-                    "train_missing_rate": _missing_rate(train_df, factor),
-                    "validation_missing_rate": _missing_rate(validation_df, factor),
-                    "train_measure_coverage": _measure_coverage(train_df, factor, exposure, weight),
-                    "validation_measure_coverage": _measure_coverage(validation_df, factor, exposure, weight),
+                    "train_missing_rate": train_factor_metadata["missing_rate"],
+                    "validation_missing_rate": validation_factor_metadata["missing_rate"],
+                    "train_measure_coverage": train_factor_metadata["measure_coverage"],
+                    "validation_measure_coverage": validation_factor_metadata["measure_coverage"],
                     "bins": int(len(bin_table)),
                     "min_bin_size": float(bin_table["bin_size"].min()),
                     "small_bins": int((bin_table["bin_size"] < min_bin_size).sum()),
@@ -166,16 +170,10 @@ def rank_factors(
                     "likelihood_ratio_stat": 0.0,
                     "degrees_of_freedom": 0,
                     "p_value": np.nan,
-                    "train_missing_rate": _missing_rate(train_df, factor) if factor in train_df.columns else np.nan,
-                    "validation_missing_rate": _missing_rate(validation_df, factor)
-                    if factor in validation_df.columns
-                    else np.nan,
-                    "train_measure_coverage": _measure_coverage(train_df, factor, exposure, weight)
-                    if factor in train_df.columns
-                    else np.nan,
-                    "validation_measure_coverage": _measure_coverage(validation_df, factor, exposure, weight)
-                    if factor in validation_df.columns
-                    else np.nan,
+                    "train_missing_rate": train_metadata.get(factor, {}).get("missing_rate", np.nan),
+                    "validation_missing_rate": validation_metadata.get(factor, {}).get("missing_rate", np.nan),
+                    "train_measure_coverage": train_metadata.get(factor, {}).get("measure_coverage", np.nan),
+                    "validation_measure_coverage": validation_metadata.get(factor, {}).get("measure_coverage", np.nan),
                     "bins": 0,
                     "min_bin_size": 0.0,
                     "small_bins": 0,
@@ -257,14 +255,7 @@ def _screening_spec(
         category_count = len(target_order)
         group_count = max(1, min(max_groups, category_count))
         cutpoints = even_cutpoints(category_count, group_count)
-        return make_categorical_groups(
-            train_df,
-            factor,
-            target,
-            exposure=exposure,
-            weight=weight,
-            cutpoints=cutpoints,
-        )
+        return categorical_group_spec_from_order(factor, target_order, cutpoints=cutpoints)
     raise ValueError("kind must be 'numeric' or 'categorical'.")
 
 
@@ -286,6 +277,45 @@ def _missing_rate(df: Any, factor: str) -> float:
     ).first()
     rows = int(row["rows"])
     return float(row["missing"] / rows) if rows else np.nan
+
+
+def _factor_metadata(
+    df: Any,
+    factors: Sequence[str],
+    exposure: str | None,
+    weight: str | None,
+) -> dict[str, dict[str, float]]:
+    spark = require_pyspark()
+    F = spark.functions
+    if exposure is not None:
+        measure = F.col(exposure).cast("double")
+    elif weight is not None:
+        measure = F.col(weight).cast("double")
+    else:
+        measure = F.lit(1.0)
+
+    aggs = [
+        F.count(F.lit(1)).alias("__rows"),
+        F.sum(measure).alias("__measure_total"),
+    ]
+    for index, factor in enumerate(factors):
+        nonmissing = F.col(factor).isNotNull()
+        aggs.extend([
+            F.sum(F.when(nonmissing, F.lit(0)).otherwise(F.lit(1))).alias(f"__missing_{index}"),
+            F.sum(F.when(nonmissing, measure).otherwise(F.lit(0.0))).alias(f"__covered_{index}"),
+        ])
+    row = df.select(*aggs).first()
+    rows = float(row["__rows"] or 0.0)
+    total = float(row["__measure_total"] or 0.0)
+    metadata: dict[str, dict[str, float]] = {}
+    for index, factor in enumerate(factors):
+        missing = float(row[f"__missing_{index}"] or 0.0)
+        covered = float(row[f"__covered_{index}"] or 0.0)
+        metadata[factor] = {
+            "missing_rate": missing / rows if rows else np.nan,
+            "measure_coverage": covered / total if total else np.nan,
+        }
+    return metadata
 
 
 def _measure_coverage(

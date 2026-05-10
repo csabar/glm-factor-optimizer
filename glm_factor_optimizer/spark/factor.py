@@ -29,6 +29,8 @@ class SparkFactorBlock:
     optimization: SparkOptimizationResult | None = None
     target_order_table_: pd.DataFrame | None = None
     last_comparison: pd.DataFrame | None = None
+    last_comparison_revision: int | None = None
+    last_comparison_spec_fingerprint: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -57,6 +59,7 @@ class SparkFactorBlock:
         else:
             raise ValueError("kind must be 'numeric' or 'categorical'.")
         self.metadata["source"] = "coarse_bins"
+        self._clear_comparison()
         return self.spec
 
     def target_order(self, max_groups: int | None = None) -> pd.DataFrame:
@@ -83,6 +86,7 @@ class SparkFactorBlock:
                 cutpoints=cutpoints,
             )
             self.metadata["source"] = "target_order"
+            self._clear_comparison()
         return self.target_order_table_
 
     def set_spec(self, spec: JsonDict) -> SparkFactorBlock:
@@ -92,6 +96,7 @@ class SparkFactorBlock:
             raise ValueError("Spec column must match the factor.")
         self.spec = dict(spec)
         self.metadata["source"] = "manual"
+        self._clear_comparison()
         return self
 
     def optimize(
@@ -127,6 +132,7 @@ class SparkFactorBlock:
         self.optimization = result
         self.spec = result.spec
         self.metadata["source"] = "optuna"
+        self._clear_comparison()
         return result
 
     def bin_table(self, sample: str = "train") -> pd.DataFrame:
@@ -154,7 +160,7 @@ class SparkFactorBlock:
             return_scored=True,
             _return_model=True,
         )
-        self.last_comparison = comparison
+        self._remember_comparison(comparison)
         try:
             return by_factor_report(
                 scored,
@@ -172,7 +178,7 @@ class SparkFactorBlock:
 
         self._require_spec()
         comparison = self.study.evaluate_candidate(self.factor, self.spec)
-        self.last_comparison = comparison
+        self._remember_comparison(comparison)
         return comparison
 
     def accept(self, comment: str | None = None) -> SparkFactorBlock:
@@ -191,3 +197,13 @@ class SparkFactorBlock:
     def _require_spec(self) -> None:
         if self.spec is None:
             raise ValueError("Create, optimize, or set a spec before using this method.")
+
+    def _remember_comparison(self, comparison: pd.DataFrame) -> None:
+        self.last_comparison = comparison
+        self.last_comparison_revision = self.study._revision
+        self.last_comparison_spec_fingerprint = self.study._spec_fingerprint(self.spec)
+
+    def _clear_comparison(self) -> None:
+        self.last_comparison = None
+        self.last_comparison_revision = None
+        self.last_comparison_spec_fingerprint = None

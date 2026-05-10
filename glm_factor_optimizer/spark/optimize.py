@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ._deps import require_pyspark
-from .bins import apply_spec, make_categorical_groups, make_numeric_bins
+from .bins import apply_spec, categorical_group_spec_from_order, category_target_order, make_numeric_bins
 from .metrics import model_deviance
 from .model import fit_glm
 
@@ -153,12 +153,17 @@ def optimize_factor(
         cached_inputs.extend([frame for frame, cached in [(train_df, train_cached), (validation_df, validation_cached)] if cached])
 
     base_numeric = make_numeric_bins(train_df, factor, bins=n_prebins) if kind == "numeric" else None
+    base_categorical = (
+        category_target_order(train_df, factor, target, exposure=exposure, weight=weight)
+        if kind == "categorical"
+        else None
+    )
 
     def objective(trial: Any) -> float:
         spec = (
             _numeric_spec_from_trial(trial, base_numeric)
             if kind == "numeric"
-            else _categorical_spec_from_trial(trial, train_df, factor, target, exposure, weight)
+            else _categorical_spec_from_trial(trial, factor, base_categorical)
         )
         trial.set_user_attr("spec", spec)
         train_transformed = None
@@ -325,26 +330,16 @@ def _numeric_spec_from_trial(trial: Any, base: JsonDict) -> JsonDict:
 
 def _categorical_spec_from_trial(
     trial: Any,
-    train_df: Any,
     factor: str,
-    target: str,
-    exposure: str | None,
-    weight: str | None,
+    target_order: pd.DataFrame,
 ) -> JsonDict:
-    base = make_categorical_groups(train_df, factor, target, exposure=exposure, weight=weight)
+    base = categorical_group_spec_from_order(factor, target_order)
     cutpoints = [
         index
         for index in range(1, len(base["order"]))
         if trial.suggest_categorical(f"group_cut_{index}", [False, True])
     ]
-    return make_categorical_groups(
-        train_df,
-        factor,
-        target,
-        exposure=exposure,
-        weight=weight,
-        cutpoints=cutpoints,
-    )
+    return categorical_group_spec_from_order(factor, target_order, cutpoints=cutpoints)
 
 
 def _bin_summary(

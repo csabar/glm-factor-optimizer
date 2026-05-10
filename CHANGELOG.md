@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Added `train_fraction`, `validation_fraction`, and `holdout_fraction`
   aliases to `split(...)`.
+- Added opt-in Spark `time_split="approximate"` for time-ordered splitting
+  without a global row-number window.
 - Added Spark-backed `GLMStudy` dispatch and `SparkGLMStudy`/
   `SparkFactorBlock` for notebook-style Spark model design without converting
   large modeling tables to pandas.
@@ -24,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   DataFrames.
 - Spark calibration reports now use distributed approximate quantile cut points
   instead of an unpartitioned global window.
+- Spark workflows reuse fresh factor comparison scores during acceptance,
+  collapse report metric aggregations, precompute categorical optimization
+  order once per factor, and batch screening metadata collection.
 
 ### Fixed
 

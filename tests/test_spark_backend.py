@@ -107,6 +107,17 @@ class SparkBackendTests(unittest.TestCase):
             self.assertGreater(train.count(), 0)
             self.assertGreater(validation.count(), 0)
             self.assertGreater(holdout.count(), 0)
+            approx_train, approx_validation, approx_holdout = split(
+                df,
+                train_fraction=0.5,
+                validation_fraction=0.25,
+                holdout_fraction=0.25,
+                time="time_id",
+                time_split="approximate",
+            )
+            approx_counts = [approx_train.count(), approx_validation.count(), approx_holdout.count()]
+            self.assertEqual(sum(approx_counts), df.count())
+            self.assertTrue(all(count > 0 for count in approx_counts))
 
             numeric_spec = make_numeric_bins(train, "machine_age", bins=4)
             categorical_spec = make_categorical_groups(train, "site_region", "events", exposure="hours")
@@ -181,6 +192,21 @@ class SparkBackendTests(unittest.TestCase):
             json.dumps(optimized.spec)
             self.assertEqual(optimized.output, "machine_age_bin")
             self.assertEqual(len(optimized.trials), 2)
+            categorical_optimized = optimize_factor(
+                train,
+                validation,
+                target="events",
+                exposure="hours",
+                factor="site_region",
+                kind="categorical",
+                prediction="predicted_events",
+                trials=2,
+                max_bins=2,
+                min_bin_size=1.0,
+            )
+            json.dumps(categorical_optimized.spec)
+            self.assertEqual(categorical_optimized.output, "site_region_group")
+            self.assertEqual(len(categorical_optimized.trials), 2)
 
             workflow = SparkGLMWorkflow(
                 target="events",
@@ -233,12 +259,25 @@ class SparkBackendTests(unittest.TestCase):
             age.coarse_bins(bins=3)
             self.assertGreater(len(age.bin_table()), 0)
             self.assertIn("candidate_validation_deviance", age.compare().columns)
-            age.accept(comment="spark study smoke")
+            original_current_deviance = spark_study._current_validation_deviance
+
+            def fail_current_deviance() -> float:
+                raise AssertionError("accept should reuse the fresh comparison scores")
+
+            spark_study._current_validation_deviance = fail_current_deviance
+            try:
+                age.accept(comment="spark study smoke")
+            finally:
+                spark_study._current_validation_deviance = original_current_deviance
             study_model = spark_study.fit_main_effects()
             self.assertIsInstance(study_model, FittedSparkGLM)
             self.assertIn("coefficient", study_model.coefficients().columns)
             study_report = spark_study.validation_report()
             self.assertIn("summary", study_report)
+            self.assertIn("calibration", study_report)
+            self.assertIn("lift", study_report)
+            self.assertIn("train_validation", study_report)
+            self.assertIn("by_machine_age_bin", study_report)
             self.assertGreater(len(study_report["summary"]), 0)
             holdout_report = spark_study.finalize()
             self.assertIn("summary", holdout_report)
@@ -320,7 +359,7 @@ def _spark_sample_frame(spark):
         (signal + region_effect + equipment_effect > F.lit(0.25)).cast("int")
         + (ident % 17 == 0).cast("int")
     ).alias("events")
-    return spark.range(80).select(events, hours, machine_age, site_region, equipment_type)
+    return spark.range(80).select(events, hours, machine_age, site_region, equipment_type, ident.cast("double").alias("time_id"))
 
 
 if __name__ == "__main__":

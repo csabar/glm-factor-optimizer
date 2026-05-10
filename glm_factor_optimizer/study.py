@@ -145,6 +145,7 @@ class GLMStudy:
         holdout_fraction: float = 0.2,
         seed: int | None = None,
         time: str | None = None,
+        time_split: str = "exact",
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Create train, validation, and holdout samples.
 
@@ -161,6 +162,8 @@ class GLMStudy:
         time:
             Optional time-like column for ordered splitting instead of random
             splitting.
+        time_split:
+            Time split strategy. Pandas supports only ``"exact"``.
 
         Returns
         -------
@@ -175,6 +178,7 @@ class GLMStudy:
             holdout=holdout_fraction,
             seed=seed if seed is not None else self.seed or 42,
             time=time,
+            time_split=time_split,
         )
         self._invalidate_model(include_holdout=True)
         self._record("split", comment=f"train={train_fraction}, validation={validation_fraction}, holdout={holdout_fraction}")

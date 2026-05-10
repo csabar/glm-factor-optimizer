@@ -161,8 +161,18 @@ def make_categorical_groups(
         JSON-serializable categorical grouping spec.
     """
 
-    cutpoints = cutpoints or []
     target_order = category_target_order(df, factor, target, exposure=exposure, weight=weight)
+    return categorical_group_spec_from_order(factor, target_order, cutpoints=cutpoints)
+
+
+def categorical_group_spec_from_order(
+    factor: str,
+    target_order: pd.DataFrame,
+    cutpoints: list[int] | None = None,
+) -> JsonDict:
+    """Create a categorical grouping spec from precomputed target order."""
+
+    cutpoints = cutpoints or []
     ordered = [str(value) for value in target_order[factor].tolist()]
     clean_cutpoints = sorted({int(point) for point in cutpoints if 0 < int(point) < len(ordered)})
     boundaries = [0, *clean_cutpoints, len(ordered)]

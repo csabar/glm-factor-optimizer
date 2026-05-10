@@ -39,20 +39,7 @@ def model_deviance(
 
     spark = require_pyspark()
     F = spark.functions
-    y = F.col(target).cast("double")
-    mu = F.greatest(F.col(prediction).cast("double"), F.lit(1e-9))
-    family = family.lower().strip()
-
-    if family == "poisson":
-        dev = F.when(y > 0, 2.0 * (y * F.log(y / mu) - (y - mu))).otherwise(2.0 * mu)
-    elif family == "gamma":
-        safe_y = F.greatest(y, F.lit(1e-9))
-        dev = 2.0 * (((safe_y - mu) / mu) - F.log(safe_y / mu))
-    elif family == "gaussian":
-        dev = (y - mu) * (y - mu)
-    else:
-        raise ValueError("family must be 'poisson', 'gamma', or 'gaussian'.")
-
+    dev = deviance_expression(target, prediction, family=family)
     if weight is None:
         row = df.select(F.avg(dev).alias("deviance")).first()
     else:
@@ -92,15 +79,58 @@ def summary(
         One-row Spark dataframe with totals, ratio, and deviance.
     """
 
+    return summary_frame(
+        df,
+        target=target,
+        prediction=prediction,
+        exposure=exposure,
+        family=family,
+        weight=weight,
+        include_errors=False,
+    )
+
+
+def summary_frame(
+    df: Any,
+    *,
+    target: str,
+    prediction: str,
+    exposure: str | None = None,
+    family: str = "poisson",
+    weight: str | None = None,
+    include_errors: bool = False,
+) -> Any:
+    """Return one-row Spark metrics, optionally including MAE and RMSE."""
+
     spark = require_pyspark()
     F = spark.functions
+    y = F.col(target).cast("double")
+    mu = F.col(prediction).cast("double")
+    dev = deviance_expression(target, prediction, family=family)
+    error = y - mu
     aggs = [
         F.count(F.lit(1)).alias("rows"),
-        F.sum(F.col(target).cast("double")).alias("actual"),
-        F.sum(F.col(prediction).cast("double")).alias("predicted"),
+        F.sum(y).alias("actual"),
+        F.sum(mu).alias("predicted"),
     ]
     if exposure is not None:
         aggs.append(F.sum(F.col(exposure).cast("double")).alias("exposure"))
+    if weight is None:
+        aggs.append(F.avg(dev).alias("deviance"))
+        if include_errors:
+            aggs.extend([
+                F.avg(F.abs(error)).alias("mae"),
+                F.sqrt(F.avg(error * error)).alias("rmse"),
+            ])
+    else:
+        w = F.col(weight).cast("double")
+        aggs.append((F.sum(dev * w) / F.sum(w)).alias("deviance"))
+        if include_errors:
+            aggs.extend([
+                (F.sum(F.abs(error) * w) / F.sum(w)).alias("mae"),
+                F.sqrt(F.sum(error * error * w) / F.sum(w)).alias("rmse"),
+            ])
+
     result = df.agg(*aggs)
     result = result.withColumn("actual_to_predicted", F.col("actual") / F.greatest(F.col("predicted"), F.lit(1e-9)))
     if exposure is not None:
@@ -109,7 +139,25 @@ def summary(
     else:
         result = result.withColumn("actual_mean", F.col("actual") / F.greatest(F.col("rows"), F.lit(1)))
         result = result.withColumn("predicted_mean", F.col("predicted") / F.greatest(F.col("rows"), F.lit(1)))
-    return result.withColumn("deviance", F.lit(model_deviance(df, target, prediction, family=family, weight=weight)))
+    return result
+
+
+def deviance_expression(target: str, prediction: str, *, family: str) -> Any:
+    """Return a Spark column expression for family-specific deviance."""
+
+    spark = require_pyspark()
+    F = spark.functions
+    y = F.col(target).cast("double")
+    mu = F.greatest(F.col(prediction).cast("double"), F.lit(1e-9))
+    normalized = family.lower().strip()
+    if normalized == "poisson":
+        return F.when(y > 0, 2.0 * (y * F.log(y / mu) - (y - mu))).otherwise(2.0 * mu)
+    if normalized == "gamma":
+        safe_y = F.greatest(y, F.lit(1e-9))
+        return 2.0 * (((safe_y - mu) / mu) - F.log(safe_y / mu))
+    if normalized == "gaussian":
+        return (y - mu) * (y - mu)
+    raise ValueError("family must be 'poisson', 'gamma', or 'gaussian'.")
 
 
 def calibration(

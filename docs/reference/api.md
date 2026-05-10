@@ -73,6 +73,12 @@ For Spark studies, `train`, `validation`, `holdout`, and scored frame
 attributes are Spark DataFrames. Ranking, comparison, report, and audit tables
 are bounded pandas metadata.
 
+When `time=` is supplied, `split(...)` uses exact ordered splits by default.
+Spark users can opt into distributed approximate time thresholds with
+`time_split="approximate"` when exact row-number boundaries are less important
+than avoiding a global ordered window. Pandas inputs support only the exact
+strategy.
+
 ## `FactorBlock`
 
 Import:
@@ -241,7 +247,8 @@ final = study.finalize()
 ```
 
 Spark study reports are aggregate metadata collected for display and saved run
-artifacts; the large modeling frames remain Spark DataFrames.
+artifacts; the large modeling frames remain Spark DataFrames. Report summaries
+combine totals, deviance, MAE, and RMSE in compact Spark aggregations.
 
 For Spark-native factor screening, keep the data in Spark:
 

@@ -291,6 +291,10 @@ This keeps raw, split, and scored modeling tables in Spark. Study rankings,
 comparisons, reports, and saved artifacts are bounded aggregate metadata for
 notebook inspection.
 
+For large Spark tables with an ordered time split, exact splitting remains the
+default. Use `time_split="approximate"` to avoid a global row-number window when
+approximate fraction boundaries are acceptable.
+
 Spark Optuna optimization runs Optuna on the driver and Spark GLM jobs inside
 each trial:
 

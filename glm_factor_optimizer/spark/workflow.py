@@ -111,6 +111,7 @@ class SparkGLMWorkflow:
         validation_fraction: float = 0.2,
         holdout_fraction: float = 0.2,
         time: str | None = None,
+        time_split: str = "exact",
     ) -> SparkWorkflowResult:
         """Optimize each factor sequentially, then fit a final Spark GLM.
 
@@ -129,6 +130,9 @@ class SparkGLMWorkflow:
         time:
             Optional time-like column for ordered splitting instead of random
             splitting.
+        time_split:
+            Time split strategy. ``"approximate"`` avoids a global ordered
+            window by using approximate time quantile thresholds.
 
         Returns
         -------
@@ -144,6 +148,7 @@ class SparkGLMWorkflow:
             holdout=holdout_fraction,
             seed=self.seed or 42,
             time=time,
+            time_split=time_split,
         )
         glm = SparkGLM(
             target=self.target,
