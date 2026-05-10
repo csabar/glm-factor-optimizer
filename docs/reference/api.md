@@ -27,6 +27,11 @@ GLMStudy(
 )
 ```
 
+`GLMStudy` accepts pandas and Spark DataFrames. Pandas inputs use the pandas
+study implementation. Spark inputs dispatch to a Spark-backed study that keeps
+raw, split, and scored modeling tables as Spark DataFrames while returning small
+aggregate metadata tables for notebook inspection.
+
 Primary methods:
 
 | Method | Purpose |
@@ -64,6 +69,10 @@ Important attributes:
 | `validation_scored` | Latest scored validation dataframe. |
 | `holdout_scored` | Holdout scored by `finalize()` or `holdout_report()`. |
 
+For Spark studies, `train`, `validation`, `holdout`, and scored frame
+attributes are Spark DataFrames. Ranking, comparison, report, and audit tables
+are bounded pandas metadata.
+
 ## `FactorBlock`
 
 Import:
@@ -77,6 +86,9 @@ Usually created by:
 ```python
 block = study.factor("machine_age")
 ```
+
+Spark studies return `SparkFactorBlock`, which mirrors the same notebook
+methods while running factor operations on Spark.
 
 Methods:
 
@@ -171,7 +183,7 @@ Use these for custom reports outside `GLMStudy`.
 ## Spark Backend
 
 ```python
-from glm_factor_optimizer.spark import SparkGLM, SparkGLMWorkflow
+from glm_factor_optimizer.spark import SparkGLM, SparkGLMStudy, SparkGLMWorkflow
 ```
 
 The Spark backend is optional and imports PySpark lazily. Install with:
@@ -180,8 +192,8 @@ The Spark backend is optional and imports PySpark lazily. Install with:
 pip install "glm-factor-optimizer[spark]"
 ```
 
-Top-level `GLM` and `RateGLM` dispatch on the input dataframe. With Spark
-dataframes, manual fitting uses Spark ML generalized linear regression:
+Top-level `GLM`, `RateGLM`, and `GLMStudy` dispatch on the input dataframe. With
+Spark dataframes, manual fitting uses Spark ML generalized linear regression:
 
 ```python
 from glm_factor_optimizer import RateGLM
@@ -190,6 +202,46 @@ glm = RateGLM(target_col="events", exposure_col="hours")
 model = glm.fit(train_sdf, factors=["event_type", "region"])
 scored = glm.predict(valid_sdf, model)
 ```
+
+In long Spark Connect notebooks, call `model.release()` after a fitted model is
+no longer needed. Study and optimization workflows release temporary Spark ML
+models automatically.
+
+Spark users can use the same study workflow without converting the modeling
+table to pandas:
+
+```python
+from glm_factor_optimizer import GLMStudy
+
+study = GLMStudy(
+    spark.table("catalog.schema.modeling_table"),
+    target="events",
+    exposure="hours",
+    family="poisson",
+    prediction="predicted_events",
+    factor_kinds={"region": "categorical"},
+)
+
+train, valid, holdout = study.split(
+    train_fraction=0.6,
+    validation_fraction=0.2,
+    holdout_fraction=0.2,
+    seed=42,
+)
+ranking = study.rank_candidates(["machine_age", "region"], bins=5)
+
+age = study.factor("machine_age")
+age.coarse_bins(bins=5)
+age.compare()
+age.accept()
+
+study.fit_main_effects()
+report = study.validation_report()
+final = study.finalize()
+```
+
+Spark study reports are aggregate metadata collected for display and saved run
+artifacts; the large modeling frames remain Spark DataFrames.
 
 For Spark-native factor screening, keep the data in Spark:
 

@@ -6,7 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Added `train_fraction`, `validation_fraction`, and `holdout_fraction`
+  aliases to `split(...)`.
+- Added Spark-backed `GLMStudy` dispatch and `SparkGLMStudy`/
+  `SparkFactorBlock` for notebook-style Spark model design without converting
+  large modeling tables to pandas.
+- Added public documentation examples for Spark-native study workflows.
+- Added a Databricks Spark Connect smoke script for validating Serverless
+  compatibility before publishing.
+
+### Changed
+
+- Spark study reports, rankings, comparisons, and saved CSV artifacts are
+  bounded aggregate metadata; raw and scored modeling tables remain Spark
+  DataFrames.
+
+### Fixed
+
+- Fixed Spark Connect compatibility for intercept-only Spark GLM fits, which
+  also unblocks Spark `RateGLM.fit(...)` baseline screening.
+- Fixed Spark optimizer caching so Databricks Serverless workspaces that reject
+  `cache()`/`persist()` fall back to uncached execution.
+- Fixed Spark Connect model-cache growth by releasing temporary Spark ML models
+  after screening, candidate comparison, Optuna trials, interaction tests, and
+  invalidated study model fits.
+- Fixed `GLMStudy(spark_df, ...)` so it no longer calls pandas-only `.copy()`
+  on Spark DataFrames.
 
 ## [0.1.1] - 2026-05-10
 

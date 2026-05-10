@@ -9,6 +9,7 @@
 .pytest_cache/
 .ruff_cache/
 .venv/
+.venv-dbx/
 runs/
 dist/**
 build/**
@@ -16,3 +17,4 @@ site/
 *.egg-info/
 coverage.xml
 htmlcov/
+local-comments/

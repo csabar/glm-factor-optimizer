@@ -358,6 +358,24 @@ class GLM:
             Ranked screening table.
         """
 
+        if is_spark_dataframe(train_df):
+            from .spark.screening import rank_factors as spark_rank_factors
+
+            return spark_rank_factors(
+                train_df,
+                validation_df,
+                target=self.target,
+                factors=factors,
+                family=self.family,
+                exposure=self.exposure,
+                weight=self.weight,
+                factor_kinds=factor_kinds,
+                bins=bins,
+                max_groups=max_groups,
+                prediction=self.prediction,
+                min_bin_size=min_bin_size,
+            )
+
         return rank_factors(
             train_df,
             validation_df,

@@ -105,6 +105,9 @@ def summary(
     if exposure is not None:
         result = result.withColumn("actual_rate", F.col("actual") / F.greatest(F.col("exposure"), F.lit(1e-9)))
         result = result.withColumn("predicted_rate", F.col("predicted") / F.greatest(F.col("exposure"), F.lit(1e-9)))
+    else:
+        result = result.withColumn("actual_mean", F.col("actual") / F.greatest(F.col("rows"), F.lit(1)))
+        result = result.withColumn("predicted_mean", F.col("predicted") / F.greatest(F.col("rows"), F.lit(1)))
     return result.withColumn("deviance", F.lit(model_deviance(df, target, prediction, family=family, weight=weight)))
 
 

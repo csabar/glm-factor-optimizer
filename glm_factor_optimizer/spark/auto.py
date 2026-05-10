@@ -129,14 +129,17 @@ class RateGLM:
             weight=self.weight_col,
             prediction=self.prediction_col,
         )
-        baseline_scored = baseline_model.transform(validation_df)
-        baseline_deviance = model_deviance(
-            baseline_scored,
-            self.target_col,
-            self.prediction_col,
-            family=self.family,
-            weight=self.weight_col,
-        )
+        try:
+            baseline_scored = baseline_model.transform(validation_df)
+            baseline_deviance = model_deviance(
+                baseline_scored,
+                self.target_col,
+                self.prediction_col,
+                family=self.family,
+                weight=self.weight_col,
+            )
+        finally:
+            baseline_model.release()
 
         rows = []
         for factor in self.candidate_factors:
@@ -157,7 +160,8 @@ class RateGLM:
             row["selected"] = row["factor"] in selected
         self.identified_factors_ = _rows_to_spark(train_df, rows)
 
-        self.model_ = fit_glm(
+        previous_model = self.model_
+        model = fit_glm(
             train_df,
             target=self.target_col,
             factors=selected,
@@ -166,6 +170,9 @@ class RateGLM:
             weight=self.weight_col,
             prediction=self.prediction_col,
         )
+        self.model_ = model
+        if previous_model is not None:
+            previous_model.release()
         self.train_scored_ = self.model_.transform(train_df)
         self.validation_scored_ = self.model_.transform(validation_df)
         self.validation_report_ = SparkGLM(
@@ -203,6 +210,7 @@ class RateGLM:
         baseline_deviance: float,
     ) -> dict[str, Any]:
         kind = self.factor_kinds.get(factor) or _infer_kind(train_df, factor)
+        model = None
         try:
             model = fit_glm(
                 train_df,
@@ -245,6 +253,9 @@ class RateGLM:
                 "selected": False,
                 "error": repr(exc),
             }
+        finally:
+            if model is not None:
+                model.release()
 
 
 SparkRateGLM = RateGLM

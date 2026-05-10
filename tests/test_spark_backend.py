@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
 import unittest
 import warnings
 
@@ -22,14 +23,18 @@ class SparkBackendTests(unittest.TestCase):
 
     def test_spark_backend_imports_without_pyspark(self) -> None:
         from glm_factor_optimizer.spark import (
+            SparkFactorBlock,
             SparkGLM,
+            SparkGLMStudy,
             SparkGLMWorkflow,
             RateGLM,
             aggregate_rate_table,
             category_target_order,
         )
 
+        self.assertEqual(SparkFactorBlock.__name__, "SparkFactorBlock")
         self.assertEqual(SparkGLM.__name__, "SparkGLM")
+        self.assertEqual(SparkGLMStudy.__name__, "SparkGLMStudy")
         self.assertEqual(SparkGLMWorkflow.__name__, "SparkGLMWorkflow")
         self.assertEqual(RateGLM.__name__, "RateGLM")
         self.assertEqual(aggregate_rate_table.__name__, "aggregate_rate_table")
@@ -42,6 +47,18 @@ class SparkBackendTests(unittest.TestCase):
             require_pyspark()
         except ImportError as exc:
             self.assertIn("glm-factor-optimizer[spark]", str(exc))
+
+    def test_spark_optimizer_cache_fallback_handles_serverless(self) -> None:
+        from glm_factor_optimizer.spark.optimize import _cache_if_supported
+
+        class ServerlessFrame:
+            def cache(self) -> ServerlessFrame:
+                raise RuntimeError("[NOT_SUPPORTED_WITH_SERVERLESS] PERSIST TABLE is not supported")
+
+        frame = ServerlessFrame()
+        result, cached = _cache_if_supported(frame)
+        self.assertIs(result, frame)
+        self.assertFalse(cached)
 
     def test_local_spark_runtime_with_sample_data(self) -> None:
         if os.environ.get("GLM_FACTOR_OPTIMIZER_RUN_SPARK_TESTS") != "1":
@@ -60,15 +77,18 @@ class SparkBackendTests(unittest.TestCase):
 
         from glm_factor_optimizer.spark import (
             SparkGLM,
+            SparkGLMStudy,
             SparkGLMWorkflow,
             aggregate_rate_table,
             apply_spec,
+            fit_glm,
             make_categorical_groups,
             make_numeric_bins,
             optimize_factor,
             split,
         )
         from glm_factor_optimizer import GLM as PublicGLM
+        from glm_factor_optimizer import GLMStudy as PublicGLMStudy
         from glm_factor_optimizer import RateGLM as PublicRateGLM
         from glm_factor_optimizer import split as public_split
         from glm_factor_optimizer.spark.model import FittedSparkGLM
@@ -82,10 +102,7 @@ class SparkBackendTests(unittest.TestCase):
         )
         spark.sparkContext.setLogLevel("ERROR")
         try:
-            df = spark.createDataFrame(
-                _spark_sample_rows(),
-                ["events", "hours", "machine_age", "site_region", "equipment_type"],
-            )
+            df = _spark_sample_frame(spark)
             train, validation, holdout = split(df, seed=42)
             self.assertGreater(train.count(), 0)
             self.assertGreater(validation.count(), 0)
@@ -115,6 +132,16 @@ class SparkBackendTests(unittest.TestCase):
             scored_validation = glm.predict(validation_transformed, model)
             self.assertEqual(scored_validation.select("predicted_events").count(), validation_transformed.count())
             self.assertGreater(glm.report(scored_validation)["summary"].collect()[0]["predicted"], 0.0)
+
+            baseline_model = fit_glm(
+                train,
+                target="events",
+                exposure="hours",
+                factors=[],
+                prediction="predicted_events",
+            )
+            baseline_scored = baseline_model.transform(validation)
+            self.assertGreater(baseline_scored.select("predicted_events").count(), 0)
 
             public_glm = PublicGLM(target="events", exposure="hours", prediction="predicted_events")
             public_model = public_glm.fit(train, ["machine_age", "site_region"])
@@ -181,6 +208,45 @@ class SparkBackendTests(unittest.TestCase):
             self.assertIsInstance(rate_scored, SparkDataFrame)
             self.assertIn("predicted_events", rate_scored.columns)
 
+            spark_study = PublicGLMStudy(
+                df,
+                target="events",
+                exposure="hours",
+                prediction="predicted_events",
+                factor_kinds={"site_region": "categorical"},
+                min_bin_size=1.0,
+                seed=42,
+            )
+            self.assertIsInstance(spark_study, SparkGLMStudy)
+            study_train, study_validation, study_holdout = spark_study.split(
+                train_fraction=0.6,
+                validation_fraction=0.2,
+                holdout_fraction=0.2,
+                seed=42,
+            )
+            self.assertIsInstance(study_train, SparkDataFrame)
+            self.assertIsInstance(study_validation, SparkDataFrame)
+            self.assertIsInstance(study_holdout, SparkDataFrame)
+            study_ranking = spark_study.rank_candidates(["machine_age", "site_region"], bins=3, max_groups=2)
+            self.assertEqual(len(study_ranking), 2)
+            age = spark_study.factor("machine_age")
+            age.coarse_bins(bins=3)
+            self.assertGreater(len(age.bin_table()), 0)
+            self.assertIn("candidate_validation_deviance", age.compare().columns)
+            age.accept(comment="spark study smoke")
+            study_model = spark_study.fit_main_effects()
+            self.assertIsInstance(study_model, FittedSparkGLM)
+            self.assertIn("coefficient", study_model.coefficients().columns)
+            study_report = spark_study.validation_report()
+            self.assertIn("summary", study_report)
+            self.assertGreater(len(study_report["summary"]), 0)
+            holdout_report = spark_study.finalize()
+            self.assertIn("summary", holdout_report)
+            self.assertIsInstance(spark_study.holdout_scored, SparkDataFrame)
+            with tempfile.TemporaryDirectory() as temp:
+                run_path = spark_study.save(temp)
+                self.assertTrue((run_path / "specs.json").exists())
+
             weighted_train = public_train.withColumn("row_weight", F.lit(1.0))
             missing_weight_glm = PublicRateGLM(
                 candidate_factors=["machine_age"],
@@ -215,22 +281,46 @@ class SparkBackendTests(unittest.TestCase):
             spark.stop()
 
 
-def _spark_sample_rows() -> list[tuple[int, float, float, str, str]]:
-    rows: list[tuple[int, float, float, str, str]] = []
-    regions = ["north", "south", "east", "west"]
-    equipment = ["pump", "press", "lathe"]
-    for index in range(80):
-        hours = float(1 + (index % 5))
-        machine_age = float(1 + (index % 20))
-        region = regions[index % len(regions)]
-        equipment_type = equipment[index % len(equipment)]
-        base_level = 0.15 * hours
-        age_effect = 0.03 * (machine_age > 10)
-        region_effect = {"north": 0.02, "south": 0.08, "east": 0.04, "west": 0.01}[region]
-        equipment_effect = {"pump": 0.03, "press": 0.06, "lathe": 0.02}[equipment_type]
-        events = int((base_level + age_effect + region_effect + equipment_effect) > 0.25) + int(index % 17 == 0)
-        rows.append((events, hours, machine_age, region, equipment_type))
-    return rows
+def _spark_sample_frame(spark):
+    from pyspark.sql import functions as F
+
+    ident = F.col("id")
+    region_code = ident % 4
+    equipment_code = ident % 3
+    hours = (F.lit(1.0) + (ident % 5).cast("double")).alias("hours")
+    machine_age = (F.lit(1.0) + (ident % 20).cast("double")).alias("machine_age")
+    site_region = (
+        F.when(region_code == 0, F.lit("north"))
+        .when(region_code == 1, F.lit("south"))
+        .when(region_code == 2, F.lit("east"))
+        .otherwise(F.lit("west"))
+        .alias("site_region")
+    )
+    equipment_type = (
+        F.when(equipment_code == 0, F.lit("pump"))
+        .when(equipment_code == 1, F.lit("press"))
+        .otherwise(F.lit("lathe"))
+        .alias("equipment_type")
+    )
+    region_effect = (
+        F.when(region_code == 0, F.lit(0.02))
+        .when(region_code == 1, F.lit(0.08))
+        .when(region_code == 2, F.lit(0.04))
+        .otherwise(F.lit(0.01))
+    )
+    equipment_effect = (
+        F.when(equipment_code == 0, F.lit(0.03))
+        .when(equipment_code == 1, F.lit(0.06))
+        .otherwise(F.lit(0.02))
+    )
+    raw_hours = F.lit(1.0) + (ident % 5).cast("double")
+    raw_age = F.lit(1.0) + (ident % 20).cast("double")
+    signal = F.lit(0.15) * raw_hours + F.when(raw_age > 10, F.lit(0.03)).otherwise(F.lit(0.0))
+    events = (
+        (signal + region_effect + equipment_effect > F.lit(0.25)).cast("int")
+        + (ident % 17 == 0).cast("int")
+    ).alias("events")
+    return spark.range(80).select(events, hours, machine_age, site_region, equipment_type)
 
 
 if __name__ == "__main__":

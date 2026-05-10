@@ -148,11 +148,9 @@ def optimize_factor(
 
     cached_inputs: list[Any] = []
     if cache_input:
-        train_df = train_df.cache()
-        validation_df = validation_df.cache()
-        train_df.count()
-        validation_df.count()
-        cached_inputs.extend([train_df, validation_df])
+        train_df, train_cached = _cache_if_supported(train_df)
+        validation_df, validation_cached = _cache_if_supported(validation_df)
+        cached_inputs.extend([frame for frame, cached in [(train_df, train_cached), (validation_df, validation_cached)] if cached])
 
     base_numeric = make_numeric_bins(train_df, factor, bins=n_prebins) if kind == "numeric" else None
 
@@ -165,14 +163,18 @@ def optimize_factor(
         trial.set_user_attr("spec", spec)
         train_transformed = None
         validation_transformed = None
+        train_trial_cached = False
+        validation_trial_cached = False
+        model = None
         try:
             train_transformed = apply_spec(train_df, spec)
             validation_transformed = apply_spec(validation_df, spec)
             if cache_trials:
-                train_transformed = train_transformed.cache()
-                validation_transformed = validation_transformed.cache()
-                train_transformed.count()
-                validation_transformed.count()
+                train_transformed, train_trial_cached = _cache_if_supported(train_transformed)
+                validation_transformed, validation_trial_cached = _cache_if_supported(validation_transformed)
+            else:
+                train_trial_cached = False
+                validation_trial_cached = False
 
             model = fit_glm(
                 train_transformed,
@@ -242,10 +244,12 @@ def optimize_factor(
             trial.set_user_attr("error", repr(exc))
             return float("inf")
         finally:
+            if model is not None:
+                model.release()
             if cache_trials:
-                if train_transformed is not None:
+                if train_transformed is not None and train_trial_cached:
                     train_transformed.unpersist()
-                if validation_transformed is not None:
+                if validation_transformed is not None and validation_trial_cached:
                     validation_transformed.unpersist()
 
     try:
@@ -272,6 +276,31 @@ def optimize_factor(
     finally:
         for cached in cached_inputs:
             cached.unpersist()
+
+
+def _cache_if_supported(df: Any) -> tuple[Any, bool]:
+    try:
+        cached = df.cache()
+    except Exception as exc:
+        if _is_unsupported_cache_error(exc):
+            return df, False
+        raise
+    try:
+        cached.count()
+    except Exception as exc:
+        try:
+            cached.unpersist()
+        except Exception:
+            pass
+        if _is_unsupported_cache_error(exc):
+            return df, False
+        raise
+    return cached, True
+
+
+def _is_unsupported_cache_error(exc: Exception) -> bool:
+    text = str(exc)
+    return "NOT_SUPPORTED_WITH_SERVERLESS" in text or "PERSIST TABLE is not supported" in text
 
 
 def _numeric_spec_from_trial(trial: Any, base: JsonDict) -> JsonDict:

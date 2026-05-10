@@ -249,6 +249,48 @@ model = glm.fit(train_sdf, factors=["score", "segment"])
 valid_sdf = glm.predict(valid_sdf, model)
 ```
 
+For long Spark Connect sessions, call `model.release()` when a fitted model is
+no longer needed. Study and optimization workflows release their temporary Spark
+ML models automatically.
+
+For notebook-style Spark study workflows, use the same `GLMStudy` entry point:
+
+```python
+from glm_factor_optimizer import GLMStudy
+
+sdf = spark.table("catalog.schema.modeling_table")
+
+study = GLMStudy(
+    sdf,
+    target="events",
+    exposure="hours",
+    family="poisson",
+    prediction="predicted_events",
+    factor_kinds={"region": "categorical"},
+)
+
+train, valid, holdout = study.split(
+    train_fraction=0.6,
+    validation_fraction=0.2,
+    holdout_fraction=0.2,
+    seed=42,
+)
+ranking = study.rank_candidates(["score", "region"], bins=5)
+
+score = study.factor("score")
+score.coarse_bins(bins=5)
+score.compare()
+score.accept(comment="Spark study baseline")
+
+study.fit_main_effects()
+study.validation_report()
+study.finalize()
+```
+
+This keeps raw, split, and scored modeling tables in Spark. Study rankings,
+comparisons, reports, and saved artifacts are bounded aggregate metadata for
+notebook inspection.
+
 Spark Optuna optimization runs Optuna on the driver and Spark GLM jobs inside
 each trial:
 

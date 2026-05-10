@@ -1,7 +1,9 @@
 # Validation Outputs
 
 Validation functions return pandas dataframes for notebook inspection, CSV
-export, and saved run artifacts.
+export, and saved run artifacts. Spark study workflows keep modeling tables in
+Spark and collect only bounded aggregate report metadata as pandas dataframes.
+Low-level `SparkGLM.report(...)` returns Spark DataFrames.
 
 ## Summary
 
