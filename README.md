@@ -13,7 +13,8 @@ Full project documentation is included in the source distribution under `docs/`
 and published at
 [csabar.github.io/glm-factor-optimizer](https://csabar.github.io/glm-factor-optimizer/).
 The docs are organized as tutorials, how-to guides, reference, and explanation.
-Release notes are maintained in [CHANGELOG.md](CHANGELOG.md).
+Release notes are maintained in [CHANGELOG.md](CHANGELOG.md). See
+[ROADMAP.md](ROADMAP.md) for planned development themes.
 
 Minimal runnable example:
 

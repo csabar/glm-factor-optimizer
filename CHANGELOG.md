@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-11
+
 ### Added
 
 - Added `train_fraction`, `validation_fraction`, and `holdout_fraction`
@@ -29,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Spark workflows reuse fresh factor comparison scores during acceptance,
   collapse report metric aggregations, precompute categorical optimization
   order once per factor, and batch screening metadata collection.
+- Package metadata now targets version `0.1.2`.
 
 ### Fixed
 
