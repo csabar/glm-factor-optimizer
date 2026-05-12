@@ -5,9 +5,11 @@
 [![License](https://img.shields.io/github/license/csabar/glm-factor-optimizer)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 
-Simple GLM tools for factor binning, grouping, model screening, and workflow
-automation. The package is domain-free: it works for count-rate, positive
-continuous, and other small GLM modeling problems.
+Design auditable GLM factors in Python: bin numeric variables, group categorical
+levels, rank candidate factors, fit compact GLMs, and save the specs/reports
+that explain the model. The package is domain-free: it works for count-rate,
+positive continuous, and other tabular GLM problems where the final factor
+design must be inspectable, reproducible, and easy to audit.
 
 Full project documentation is included in the source distribution under `docs/`
 and published at
@@ -16,7 +18,64 @@ The docs are organized as tutorials, how-to guides, reference, and explanation.
 Release notes are maintained in [CHANGELOG.md](CHANGELOG.md). See
 [ROADMAP.md](ROADMAP.md) for planned development themes.
 
-Minimal runnable example:
+## Install
+
+```bash
+pip install glm-factor-optimizer
+```
+
+## What problem does this solve?
+
+Many practical GLM projects are not only about fitting coefficients. Analysts
+also need to decide how numeric factors should be binned, how categorical
+levels should be grouped, which candidate variables are worth reviewing, and
+how to preserve those choices for peer review, deployment, monitoring, and
+audit.
+
+`glm-factor-optimizer` focuses on that factor-design layer. It learns
+JSON-serializable binning and grouping specs from train data, evaluates them on
+validation data, and keeps the fitted model small enough to inspect. It is most
+useful when the model has to be reviewed by people as well as scored by code.
+
+## What you get
+
+- Reusable factor specs with source columns, output columns, bin edges, category
+  mappings, labels, and defaults for missing or unseen values.
+- Validation reports for summary fit, calibration, lift, factor-level results,
+  train/validation comparison, and holdout finalization.
+- Audit artifacts such as `specs.json`, `history.json`, coefficients,
+  validation CSVs, holdout CSVs, and optimization trial tables.
+- Pandas workflows for local analysis and optional Spark workflows for large
+  PySpark modeling tables.
+
+## When to use it
+
+- You need a GLM with explicit numeric bins, categorical groups, or interaction
+  candidates.
+- You want to model counts, rates, severities, costs, durations, balances, or
+  other tabular outcomes with a transparent factor structure.
+- You need train/validation/holdout discipline for accepted model-design
+  decisions.
+- You want to compare and save factor specs as plain dictionaries rather than
+  opaque model objects.
+- You work in notebooks, local IDEs, scripts, Spark, or lakehouse-style
+  analytics environments and want a repeatable workflow that an analyst can
+  inspect step by step.
+
+Examples range from incident rates and service costs to demand, utilization,
+credit risk, warranty, insurance pricing, and actuarial loss-cost work.
+
+## When not to use it
+
+- You only need maximum black-box predictive accuracy.
+- You want an automatic replacement for CatBoost, XGBoost, LightGBM, or a deep
+  learning model.
+- Your data is unstructured text, images, audio, or high-dimensional embeddings.
+- You need causal identification rather than predictive GLM factor design.
+- Your workflow does not require inspectable bins, groups, coefficients, or
+  saved audit artifacts.
+
+## 30-second example
 
 ```python
 import pandas as pd
@@ -49,6 +108,75 @@ valid = glm.predict(valid, model)
 print(glm.report(valid)["summary"])
 ```
 
+## Main APIs
+
+| API | Use it for |
+| --- | --- |
+| `GLMStudy` | Notebook-style iterative factor design with accepted/rejected specs, validation reports, holdout finalization, and saved audit history. |
+| `FactorBlock` | One-factor work inside a study: coarse bins, target-ordered groups, optimization, comparison, acceptance, and rejection. |
+| `RateGLM` | Low-level Poisson count-rate models with optional exposure and convenience methods for bins, optimization, ranking, fitting, prediction, and reports. |
+| `GLM` | Low-level GLM families such as `poisson`, `gamma`, and `gaussian`. |
+| `GLMWorkflow` | Automatic baseline workflow for ranking, selecting, fitting, diagnostics, and logging. |
+| `optimize_bins` / `optimize_factor` | Direct numeric binning or categorical grouping optimization for one factor. |
+| `rank_factors` | Candidate factor screening before deeper review. |
+| `glm_factor_optimizer.spark` | Optional Spark backend that keeps large modeling tables in Spark. |
+
+## Choosing an API
+
+| Task | Start with | Why |
+| --- | --- | --- |
+| Build an auditable notebook workflow | `GLMStudy` | Records accepted specs, comments, validation reports, holdout results, and history. |
+| Fit frequency or event counts with exposure | `RateGLM` or `GLMStudy(family="poisson", exposure=...)` | Uses exposure as a log offset for Poisson count-rate models. |
+| Fit positive cost, duration, or severity | `GLM(family="gamma")` or `GLMStudy(family="gamma")` | Supports positive continuous targets. |
+| Find useful candidate factors | `rank_factors` or `study.rank_candidates(...)` | Screens candidates before deeper manual review. |
+| Bin a numeric factor | `glm.bins(...)`, `FactorBlock.coarse_bins(...)`, or `optimize_bins(...)` | Produces reusable numeric binning specs. |
+| Group high-cardinality categories | `FactorBlock.target_order(...)` or `optimize_bins(kind="categorical")` | Orders categories by observed target level and groups them into stable bands. |
+| Compare a proposed factor to the current model | `FactorBlock.compare()` | Evaluates the proposed spec against accepted factors. |
+| Keep large data in Spark | `GLMStudy` on a Spark dataframe or `glm_factor_optimizer.spark` | Avoids converting large modeling tables to pandas. |
+| Save model design for audit | `study.save(...)` | Writes specs, history, reports, and diagnostics. |
+
+## Relation to CatBoost / XGBoost / sklearn
+
+`glm-factor-optimizer` is not a gradient boosting library and is not a generic
+`sklearn` pipeline replacement. CatBoost, XGBoost, LightGBM, and many sklearn
+estimators are strong choices when predictive accuracy and automated nonlinear
+feature discovery matter most.
+
+Use this package when the deliverable is an inspectable GLM factor design:
+reviewable numeric bins, grouped categorical factors, explicit exposure
+handling, GLM coefficients, validation tables, and JSON-serializable audit
+specs. It can also complement boosting models: use a booster to benchmark
+predictive headroom, then use `glm-factor-optimizer` to build a simpler model
+that operations, finance, risk, pricing, or analytics teams can review and
+maintain.
+
+## LLM discovery
+
+This repository includes LLM-oriented documentation for coding assistants,
+notebook assistants, IDE chat, and retrieval systems that understand the
+[`/llms.txt`](https://llmstxt.org/) convention:
+
+- [docs/llms.txt](docs/llms.txt): concise project map for LLMs.
+- [docs/llms-full.txt](docs/llms-full.txt): expanded assistant context.
+- [docs/llm-quickstart.md](docs/llm-quickstart.md): problem-to-API mapping,
+  copy-paste prompts, and common recipes.
+- [docs/sitemap.md](docs/sitemap.md): compact map of human and LLM-readable
+  documentation.
+
+Copy-paste prompt for AI assistants:
+
+```text
+Use the Python package glm-factor-optimizer to design an auditable GLM factor
+model. Prefer GLMStudy for notebook workflows, RateGLM for Poisson count-rate
+models with exposure, GLM(family="gamma") for positive severity or cost
+models, optimize_bins for one-factor binning/grouping, and rank_factors for
+candidate screening. Keep bins/groups as JSON-serializable specs learned on
+train data, compare on validation data, reserve holdout for final evaluation,
+and use Spark APIs when the input is a Spark dataframe.
+```
+
+## Common recipes
+
 Use `RateGLM` for count-rate models:
 
 - count target, like `events`
@@ -78,13 +206,13 @@ Use `GLM` for other families, such as Gamma cost or duration models:
 ```python
 from glm_factor_optimizer import GLM
 
-glm = GLM(target="severity", family="gamma", prediction="predicted_severity")
+glm = GLM(target="service_cost", family="gamma", prediction="predicted_cost")
 
-age_spec = glm.bins(train, "machine_age", bins=6)
+age_spec = glm.bins(train, "asset_age", bins=6)
 train = glm.apply(train, age_spec)
 valid = glm.apply(valid, age_spec)
 
-model = glm.fit(train, factors=[age_spec["output"], "equipment_type"])
+model = glm.fit(train, factors=[age_spec["output"], "service_tier"])
 valid = glm.predict(valid, model)
 ```
 

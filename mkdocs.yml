@@ -1,5 +1,5 @@
 site_name: glm-factor-optimizer
-site_description: Domain-free GLM factor binning, grouping, and model design tools.
+site_description: "Tools for auditable GLM factor modeling: numeric binning, categorical grouping, candidate ranking, validation reports, and JSON specs."
 site_url: https://csabar.github.io/glm-factor-optimizer/
 repo_url: https://github.com/csabar/glm-factor-optimizer
 repo_name: csabar/glm-factor-optimizer
@@ -11,6 +11,8 @@ theme:
 
 nav:
   - Home: index.md
+  - LLM Quickstart: llm-quickstart.md
+  - Sitemap: sitemap.md
   - Tutorials:
       - Notebook GLM Factor Study Workflow: tutorials/notebook_study_workflow.md
   - How-To Guides:

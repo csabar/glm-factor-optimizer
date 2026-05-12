@@ -5,11 +5,30 @@ build-backend = "hatchling.build"
 [project]
 name = "glm-factor-optimizer"
 version = "0.1.2"
-description = "Domain-free GLM factor binning, grouping, and model design tools."
+description = "Tools for auditable GLM factor design: numeric binning, categorical grouping, factor ranking, validation, and audit specs."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 license-files = ["LICENSE"]
+keywords = [
+  "generalized linear model",
+  "numeric binning",
+  "categorical grouping",
+  "factor screening",
+  "auditable GLM",
+  "exposure model",
+  "Poisson frequency GLM",
+  "Gamma severity GLM",
+  "rating factors",
+  "risk factors",
+  "credit risk",
+  "banking analytics",
+  "operational analytics",
+  "insurance pricing",
+  "actuarial pricing",
+  "claim frequency",
+  "claim severity",
+]
 authors = [
   { name = "GLM Factor Optimizer contributors" }
 ]

@@ -29,8 +29,9 @@ Planned focus:
 - Add repeated benchmark utilities for multi-seed workflow comparison.
 - Add missingness, coverage, cardinality, and split-drift diagnostics for
   candidate factors.
-- Continue Spark and Databricks hardening around unsupported caching, temporary
-  model cleanup, and aggregate-only reporting.
+- Harden the Spark backend for PySpark environments, including Databricks and
+  Microsoft Fabric notebooks, around unsupported caching, temporary model
+  cleanup, and aggregate-only reporting.
 
 Expected outcome:
 
@@ -69,6 +70,32 @@ Expected outcome:
 
 - Users get richer design assistance while keeping the final model structure
   inspectable, portable, and suitable for review.
+
+## Backend Roadmap
+
+Current backend:
+
+- Pandas backend for local notebooks, scripts, and small-to-medium tabular
+  modeling workflows.
+- Spark backend for PySpark dataframes. This is the right execution path for
+  Spark notebook environments such as Databricks and Microsoft Fabric.
+
+Planned backend exploration:
+
+- Snowpark backend for Snowflake, using Snowpark Python DataFrames to keep
+  large modeling tables in Snowflake where feasible.
+- BigFrames backend for BigQuery, using BigQuery DataFrames / BigFrames for
+  pandas-like dataframe operations backed by BigQuery.
+
+Backend design goals:
+
+- Keep the public `GLMStudy`, `RateGLM`, and `GLM` interfaces as consistent as
+  possible across dataframe backends.
+- Keep large modeling tables in their native execution engine.
+- Return bounded aggregate metadata for notebook inspection, validation
+  reports, saved specs, and audit history.
+- Avoid adding integrations for conversational BI products unless they expose a
+  Python dataframe execution path that can run the optimizer directly.
 
 ## Non-Goals
 

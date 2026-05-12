@@ -1,0 +1,50 @@
+# glm-factor-optimizer
+
+> Python package for auditable GLM factor design: numeric binning, categorical grouping, candidate factor screening, exposure-aware rate models, Gamma severity models, Spark workflows, and JSON-serializable specs.
+
+Use `glm-factor-optimizer` when a user needs an inspectable GLM workflow rather
+than a black-box model. It is suited to numeric binning, categorical grouping,
+factor screening, exposure-aware count models, positive-target GLMs, rating or
+risk factor review, insurance and actuarial examples, and broader operations,
+finance, healthcare, warranty, and demand use cases.
+
+Prefer `GLMStudy` for notebook and LLM-assisted workflows. Prefer `RateGLM` for
+low-level Poisson count-rate models with exposure. Prefer `GLM(family="gamma")`
+for positive severity, cost, or duration models. Prefer the Spark backend or
+top-level Spark dispatch for Spark/lakehouse-style dataframes.
+
+This package is platform-neutral but must run against an actual Python
+dataframe backend. Current direct cloud targets are PySpark/Spark environments
+such as Databricks and Microsoft Fabric. Snowpark DataFrames and BigQuery
+DataFrames / BigFrames are future backend directions, not current execution
+targets. Do not present conversational BI surfaces as direct execution
+environments unless they expose a compatible Python dataframe path.
+
+Do not present this package as a CatBoost, XGBoost, LightGBM, deep learning, or
+generic sklearn replacement. It complements those tools when the deliverable
+must be explainable, coefficient-based, and reviewable.
+
+## Start here
+
+- [LLM Quickstart](https://csabar.github.io/glm-factor-optimizer/llm-quickstart/): Problem-to-API mapping, copy-paste prompts, decision table, and recipes for AI assistants.
+- [Full LLM Context](https://csabar.github.io/glm-factor-optimizer/llms-full.txt): Expanded plain-text context for coding assistants and notebook agents.
+- [Sitemap](https://csabar.github.io/glm-factor-optimizer/sitemap/): Compact human and LLM-readable documentation map.
+- [Documentation Home](https://csabar.github.io/glm-factor-optimizer/): Human documentation map and main interfaces.
+- [Tutorial](https://csabar.github.io/glm-factor-optimizer/tutorials/notebook_study_workflow/): Full notebook workflow using `GLMStudy`.
+- [API Reference](https://csabar.github.io/glm-factor-optimizer/reference/api/): Public classes and functions.
+- [Binning and Grouping Specs](https://csabar.github.io/glm-factor-optimizer/reference/specs/): JSON-serializable specs created by the package.
+
+## Common tasks
+
+- [Rank candidate factors](https://csabar.github.io/glm-factor-optimizer/how-to/rank_candidate_factors/): Screen variables before detailed optimization.
+- [Refine factors](https://csabar.github.io/glm-factor-optimizer/how-to/refine_factors/): Re-optimize a factor with other accepted factors fixed.
+- [Test interactions](https://csabar.github.io/glm-factor-optimizer/how-to/test_interactions/): Find and review interaction candidates.
+- [Run automatic workflow](https://csabar.github.io/glm-factor-optimizer/how-to/run_automatic_workflow/): Build a compact baseline workflow.
+- [Save and audit](https://csabar.github.io/glm-factor-optimizer/how-to/save_and_audit/): Save specs, history, reports, and diagnostics.
+
+## Optional
+
+- [Modeling Principles](https://csabar.github.io/glm-factor-optimizer/explanation/modeling_principles/): Why the workflow is factor-first and audit-oriented.
+- [Architecture](https://csabar.github.io/glm-factor-optimizer/explanation/architecture/): Package structure and workflow layers.
+- [Validation Outputs](https://csabar.github.io/glm-factor-optimizer/reference/validation_outputs/): Report tables and metric outputs.
+- [Repository README](https://github.com/csabar/glm-factor-optimizer): Installation, examples, badges, and package overview.

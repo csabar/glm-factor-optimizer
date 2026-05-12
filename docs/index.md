@@ -1,8 +1,42 @@
 # glm-factor-optimizer Documentation
 
 `glm-factor-optimizer` helps you design GLM factors in a way that is easy to
-inspect, rerun, and save. Start with the tutorial if you want the full notebook
-flow, or jump to a how-to guide when you need a specific task.
+inspect, rerun, and save. Use it to learn numeric bins, group categorical
+levels, rank candidate factors, compare validation results, and preserve the
+choices as reviewable artifacts.
+
+For LLM-assisted workflows, start with the [LLM Quickstart](llm-quickstart.md),
+the [sitemap](sitemap.md), or the plain-text [`llms.txt`](llms.txt) project map.
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "glm-factor-optimizer",
+  "description": "Python package for auditable GLM factor design with numeric binning, categorical grouping, candidate factor screening, validation reports, Spark workflows, and JSON-serializable specs.",
+  "codeRepository": "https://github.com/csabar/glm-factor-optimizer",
+  "url": "https://csabar.github.io/glm-factor-optimizer/",
+  "license": "https://github.com/csabar/glm-factor-optimizer/blob/main/LICENSE",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python 3.10+",
+  "keywords": [
+    "generalized linear model",
+    "numeric binning",
+    "categorical grouping",
+    "factor screening",
+    "auditable GLM",
+    "exposure model",
+    "Poisson frequency GLM",
+    "Gamma severity GLM",
+    "risk factors",
+    "rating factors",
+    "credit risk",
+    "insurance pricing",
+    "actuarial pricing"
+  ],
+  "applicationCategory": "DataAnalysisApplication"
+}
+</script>
 
 A typical modeling session looks like this:
 
@@ -20,7 +54,14 @@ A typical modeling session looks like this:
 
 Tutorial:
 
+- [LLM Quickstart](llm-quickstart.md)
 - [Notebook GLM Factor Study Workflow](tutorials/notebook_study_workflow.md)
+
+Discovery:
+
+- [Sitemap](sitemap.md)
+- [llms.txt](llms.txt)
+- [llms-full.txt](llms-full.txt)
 
 How-to guides:
 
