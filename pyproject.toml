@@ -46,7 +46,7 @@ dependencies = [
   "numpy>=1.23",
   "optuna>=3.0",
   "pandas>=1.5",
-  "statsmodels>=0.14"
+  "statsmodels>=0.14.6"
 ]
 
 [project.urls]
