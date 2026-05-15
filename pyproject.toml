@@ -61,7 +61,7 @@ mlflow = ["mlflow>=2.0"]
 spark = ["pyspark>=3.5"]
 docs = ["mkdocs>=1.6"]
 dev = [
-  "build>=1.2",
+  "build>=1.5.0",
   "coverage[toml]>=7.6",
   "hatchling>=1.21",
   "mkdocs>=1.6",
