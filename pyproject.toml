@@ -59,12 +59,12 @@ Issues = "https://github.com/csabar/glm-factor-optimizer/issues"
 [project.optional-dependencies]
 mlflow = ["mlflow>=2.0"]
 spark = ["pyspark>=3.5"]
-docs = ["mkdocs>=1.6"]
+docs = ["mkdocs>=1.6.1"]
 dev = [
   "build>=1.2",
   "coverage[toml]>=7.6",
   "hatchling>=1.21",
-  "mkdocs>=1.6",
+  "mkdocs>=1.6.1",
   "pytest>=8.0",
   "twine>=5.1",
 ]
