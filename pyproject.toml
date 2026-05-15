@@ -44,7 +44,7 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=1.23",
-  "optuna>=3.0",
+  "optuna>=4.8.0",
   "pandas>=1.5",
   "statsmodels>=0.14"
 ]
